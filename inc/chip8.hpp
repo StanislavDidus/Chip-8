@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <filesystem>
 
-#include "Config.hpp"
+#include "config.hpp"
 #include "SDL/window_renderer.hpp"
 
 class chip8
