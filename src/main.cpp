@@ -7,6 +7,7 @@
 
 struct Context
 {
+    char* path_to_rom = nullptr;
     window_renderer window_renderer;
     chip8 chip;
 };
@@ -17,7 +18,7 @@ int init(Context& ctx)
         return -1;
 
     ctx.window_renderer = std::move(window_renderer{"Standard CHIP-8 screen", 960, 540 ,SDL_WINDOW_RESIZABLE});
-    ctx.chip = chip8{"rom/IBM Logo.ch8", &ctx.window_renderer};
+    ctx.chip = chip8{ctx.path_to_rom, &ctx.window_renderer};
 
     return 0;
 }
@@ -40,7 +41,7 @@ int update(Context& ctx)
         }
 
         ctx.chip.update(0.0f);
-        ctx.chip.render();
+        ctx.chip.render(ctx.window_renderer);
 
     }
     return 0;
@@ -53,9 +54,32 @@ int shutdown(Context& ctx)
     return 0;
 }
 
-int main()
+#define TEST
+
+#ifdef Release
+#undef TEST
+#endif
+
+int main(int argc, char* argv[])
 {
+    if (argc < 1)
+    {
+        std::cerr << "Not enough arguments." << std::endl;
+        return -1;
+    }
+
+#ifdef TEST
+    argc = 2;
+    char arg0[] = "./CHIP8";
+    char arg1[] = "rom/IBM_Logo.ch8";
+    *argv = new char[2];
+    argv[0] = arg0;
+    argv[1] = arg1;
+#endif
+
     Context context;
+
+    context.path_to_rom = argv[1];
 
     init(context);
 

@@ -7,7 +7,6 @@
 
 
 chip8::chip8(const std::filesystem::path& path_to_rom, window_renderer* renderer)
-    : renderer(renderer)
 {
     // std::ios::ate makes the cursor move to the end of the file
     std::ifstream file{path_to_rom, std::ios::binary | std::ios::ate};
@@ -26,9 +25,12 @@ chip8::chip8(const std::filesystem::path& path_to_rom, window_renderer* renderer
     if (file.bad())
         std::cerr << "Failed to read the file." << std::endl;
 
-    // Init surface
+    // Init texture that we will draw to
     surface = SDL_CreateSurface(64,32, SDL_PIXELFORMAT_ARGB8888);
+    if (!surface) std::cerr << "Could not create surface: " << SDL_GetError() << std::endl;
     texture = SDL_CreateTextureFromSurface(renderer->get_renderer(), surface);
+    if (!texture) std::cerr << "Could not create texture: " << SDL_GetError() << std::endl;
+    SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
 
     std::cout << "Initialized Chip8." << std::endl;
 }
@@ -37,97 +39,90 @@ void chip8::update(float delta_time)
 {
     uint8_t first_byte = memory[program_counter];
     uint8_t second_byte = memory[program_counter + 1];
-    uint16_t combined_byte = (first_byte << 8) | second_byte;
+    opcode = (first_byte << 8) | second_byte;
 
-    uint8_t last_byte = (combined_byte & 0xF000) >> 12;
-    uint16_t nnn = combined_byte & 0x0FFF;
-    uint16_t nn = combined_byte & 0x00FF;
-    uint16_t n = combined_byte & 0x000F;
-    uint8_t x = (combined_byte & 0x0F00) >> 8;
-    uint8_t y = (combined_byte & 0x00F0) >> 4;
-    uint8_t xy = (combined_byte & 0x0FF0) >> 4;
+    uint8_t last_byte = (opcode & 0xF000) >> 12;
 
     program_counter += 2;
 
     switch (last_byte)
     {
     case 0x0:
-        switch (combined_byte)
+        switch (opcode)
         {
         case 0x00E0:
             // Clear Screen
-            for (int i = 0; i < 64 * 32; ++i) screen[i] = 0;
+            OP_00E0();
             break;
         case 0x00EE:
             // Return
-            program_counter = stack[--stack_pointer];
+            OP_00EE();
             break;
         }
         break;
     case 0x1:
         // Jump
-        program_counter = nnn;
+        OP_1NNN();
         break;
     case 0x2:
         // Call
-        stack[stack_pointer++] = program_counter;
-        program_counter = nnn;
+        OP_2NNN();
+        break;
+    case 0x3:
+        // Skip if registry value and a given value are equal
+        OP_3XNN();
+        break;
+    case 0x4:
+        // Skip if registry value and a given value are not equal
+        OP_4XNN();
+        break;
+    case 0x5:
+        // Skip if two values are equal
+        OP_5XY0();
         break;
     case 0x6:
-        registry[x] = nn;
+        // Set register
+        OP_6XNN();
         break;
     case 0x7:
-        registry[x] += nn;
+        // Add to register
+        OP_7XNN();
+        break;
+    case 0x9:
+        // Skip if two values are not equal
+        OP_9XY0();
         break;
     case 0xA:
-        index_register = nnn;
+        // Set index register
+        OP_ANNN();
         break;
     case 0xD:
         // Draw
+        OP_DXYN();
+        break;
+    // Logical and Arithmetic instructions
+    case 0x8:
         {
-            // Wrap x and y position for a sprite
-            uint8_t x_coord = registry[x] % 64;
-            uint8_t y_coord = registry[y] % 32;
-
-            registry[0xF] = 0;
-
-            for (int row = 0; row < n; ++row)
+            uint8_t n = opcode & 0x000F;
+            switch (n)
             {
-                uint8_t sprite_data = memory[index_register + row];
+            case 0x0:
+                // Set
 
-                for (int i = 0; i < 8; ++i)
-                {
-                    bool is_sprite_bit_set = ((sprite_data >> (7 - i)) & 1) == 1;
-
-                    uint8_t target_x = x_coord + i;
-                    uint8_t target_y = y_coord + row;
-
-                    uint8_t& current_screen_coord = screen[target_x + target_y * 64];
-
-                    if (is_sprite_bit_set && current_screen_coord)
-                    {
-                        current_screen_coord = 0;
-                        registry[0xF] = 1;
-                    }
-                    else if (is_sprite_bit_set && !current_screen_coord)
-                    {
-                        current_screen_coord = 1;
-                    }
-
-                    if (x_coord > 64) break;
-                }
-
-                if (y_coord > 32) break;
+                break;
             }
         }
+        break;
+    default:
+        std::cerr << "Unknown instruction was met." << std::endl;
         break;
     }
 }
 
-void chip8::render()
+void chip8::render(window_renderer& renderer)
 {
-    SDL_Renderer* sdl_renderer = renderer->get_renderer();
-    auto* pixels = static_cast<uint32_t*>(surface->pixels);
+    SDL_Renderer* sdl_renderer = renderer.get_renderer();
+    uint32_t pixels[64 * 32];
 
     SDL_SetRenderDrawColor(sdl_renderer, 0,0,0,255);
     SDL_RenderClear(sdl_renderer);
@@ -141,13 +136,11 @@ void chip8::render()
         }
     }
 
-    texture = SDL_CreateTextureFromSurface(sdl_renderer, surface);
-    SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
+    SDL_UpdateTexture(texture, nullptr, pixels, 64 * sizeof(uint32_t));
 
     SDL_SetRenderDrawColor(sdl_renderer, 255,255,255,255);
     SDL_RenderTexture(sdl_renderer, texture, nullptr, nullptr);
 
     SDL_RenderPresent(sdl_renderer);
-
-    SDL_DestroyTexture(texture);
 }
+

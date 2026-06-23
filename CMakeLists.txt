@@ -16,6 +16,7 @@ set(SOURCE_FILES
         src/main.cpp
         src/SDL/window_renderer.cpp
         src/Chip8.cpp
+        src/chip8_instructions.cpp
 )
 
 set(HEADER_FILES
