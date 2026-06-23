@@ -22,7 +22,7 @@ set(SOURCE_FILES
 set(HEADER_FILES
         inc/SDL/window_renderer.hpp
         inc/chip8.hpp
-        inc/Config.hpp
+        inc/config.hpp
 )
 
 set(ALL_FILES ${SOURCE_FILES} ${HEADER_FILES})
