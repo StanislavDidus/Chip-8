@@ -1,6 +1,6 @@
-.idea/
-.rom/
-.assets/
+idea/
+rom/
+assets/
 
 # Prerequisites
 *.d
