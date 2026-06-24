@@ -195,9 +195,9 @@ void chip8::OP_8XY7()
 
     registry[x] = b - a;
 
-    if (a >= b)
+    if (b >= a)
         registry[0xF] = 1;
-    else if (b > a)
+    else if (a > b)
         registry[0xF] = 0;
 }
 
@@ -231,4 +231,150 @@ void chip8::OP_8XYE()
     registry[x] = registry[x] << 1;
 
     registry[0xF] = removed_bit;
+}
+
+void chip8::OP_BNNN()
+{
+    uint16_t nnn = opcode & 0x0FFF;
+    uint8_t x = (opcode & 0x0F00) >> 8;
+
+    if constexpr (!CHIP48_IMPLEMENTATION)
+    {
+        program_counter = nnn + registry[0x0];
+    }
+    else
+    {
+        program_counter = nnn + registry[x];
+    }
+}
+
+
+// TODO: Move it from here
+std::random_device rng{};
+std::uniform_int_distribution<int> dist{0, 255};
+
+void chip8::OP_CXNN()
+{
+    uint8_t x = (opcode & 0x0F00) >> 8;
+    uint8_t nn = opcode & 0x00FF;
+
+    uint8_t rand = static_cast<uint8_t>(dist(rng));
+
+    registry[x] = rand & nn;
+}
+
+void chip8::OP_EX9E()
+{
+    uint8_t x = (opcode & 0x0F00) >> 8;
+    uint8_t key = registry[x];
+
+    if (key <= 0xF)
+        if (keys[key])
+            program_counter += 2;
+}
+
+void chip8::OP_EXA1()
+{
+    uint8_t x = (opcode & 0x0F00) >> 8;
+    uint8_t key = registry[x];
+
+    if (key <= 0xF)
+        if (!keys[key])
+            program_counter += 2;
+}
+
+void chip8::OP_FX07()
+{
+    uint8_t x = (opcode & 0x0F00) >> 8;
+
+    registry[x] = delay_timer;
+}
+
+void chip8::OP_FX15()
+{
+    uint8_t x = (opcode & 0x0F00) >> 8;
+
+    delay_timer = registry[x];
+}
+
+void chip8::OP_FX18()
+{
+    uint8_t x = (opcode & 0x0F00) >> 8;
+
+    sound_timer = registry[x];
+}
+
+void chip8::OP_FX1E()
+{
+    uint8_t x = (opcode & 0x0F00) >> 8;
+
+    uint16_t a = index_register;
+    uint8_t b = registry[x];
+
+    index_register = a + b;
+
+    if constexpr(AMIGA_INDEX_IMPLEMENTATION)
+        if (a > 0 && b > 0 && index_register < 0)
+            registry[0xF] = 1;
+}
+
+void chip8::OP_FX0A()
+{
+    uint8_t x = (opcode & 0x0F00) >> 8;
+
+    for (int i = 0; i < 16; ++i)
+    {
+        if (keys[i])
+        {
+            registry[x] = i;
+            return;
+        }
+    }
+
+    program_counter -= 2;
+}
+
+void chip8::OP_FX29()
+{
+    uint8_t x = (opcode & 0x0F00) >> 8;
+    uint8_t last_nibble = registry[x] & 0x0F;
+
+    index_register = FONT_MEMORY_LOCATION + 5 * last_nibble;
+}
+
+void chip8::OP_FX33()
+{
+    uint8_t x = (opcode & 0x0F00) >> 8;
+    uint8_t number = registry[x];
+
+    memory[index_register] = number / 100;
+    memory[index_register + 1] = (number % 100) / 10;
+    memory[index_register + 2] = number % 10;
+
+}
+
+void chip8::OP_FX55()
+{
+    uint8_t x = (opcode & 0x0F00) >> 8;
+
+    for (int i = 0; i <= x; ++i)
+    {
+        memory[index_register + i] = registry[i];
+    }
+
+    if constexpr (!CHIP48_IMPLEMENTATION)
+        index_register += x;
+}
+
+void chip8::OP_FX65()
+{
+    uint8_t x = (opcode & 0x0F00) >> 8;
+
+    for (int i = 0; i <= x; ++i)
+    {
+        registry[i] = memory[index_register + i];
+    }
+
+    if constexpr (!CHIP48_IMPLEMENTATION)
+        index_register += x;
 }

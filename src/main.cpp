@@ -34,14 +34,32 @@ int update(Context& ctx)
 
     while (running)
     {
+        uint64_t start = SDL_GetTicks();
+
         while (SDL_PollEvent(&event))
         {
-            if (event.type == SDL_EVENT_QUIT)
+            switch (event.type)
+            {
+            case SDL_EVENT_QUIT:
                 running = false;
+                break;
+            case SDL_EVENT_KEY_DOWN:
+                ctx.chip.key_pressed(event.key.scancode);
+                break;
+            case SDL_EVENT_KEY_UP:
+                ctx.chip.key_released(event.key.scancode);
+                break;
+            }
         }
 
         ctx.chip.update(0.0f);
         ctx.chip.render(ctx.window_renderer);
+
+        // Limit FPS to 60
+        uint64_t end = SDL_GetTicks();
+        double delta_time = static_cast<double>(end - start);
+        if (delta_time < 16.666)
+            SDL_Delay(16.666 - delta_time);
 
     }
     return 0;
@@ -71,7 +89,7 @@ int main(int argc, char* argv[])
 #ifdef TEST
     argc = 2;
     char arg0[] = "./CHIP8";
-    char arg1[] = "rom/IBM_Logo.ch8";
+    char arg1[] = "rom/Tetris.ch8";
     *argv = new char[2];
     argv[0] = arg0;
     argv[1] = arg1;
