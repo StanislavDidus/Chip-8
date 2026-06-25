@@ -33,14 +33,13 @@ chip8::chip8(const std::filesystem::path& path_to_rom, window_renderer* renderer
     if (!texture) std::cerr << "Could not create texture: " << SDL_GetError() << std::endl;
     SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
 
-    initKeys();
-    initFont();
+    init_keys();
+    init_font();
 
     std::cout << "Initialized Chip8." << std::endl;
 }
 
-
-void chip8::initKeys()
+void chip8::init_keys()
 {
     keymap[SDL_SCANCODE_1] = 0x1;
     keymap[SDL_SCANCODE_2] = 0x2;
@@ -58,9 +57,11 @@ void chip8::initKeys()
     keymap[SDL_SCANCODE_X] = 0x0;
     keymap[SDL_SCANCODE_C] = 0xB;
     keymap[SDL_SCANCODE_V] = 0xF;
+
+    std::cout << "Initialized key map." << std::endl;
 }
 
-void chip8::initFont()
+void chip8::init_font()
 {
     uint8_t characters[5 * 16] = {
         0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -82,6 +83,8 @@ void chip8::initFont()
     };
 
     memcpy(memory + FONT_MEMORY_LOCATION, characters, 5 * 16 * sizeof(uint8_t));
+
+    std::cout << "Initialized font." << std::endl;
 }
 
 void chip8::key_pressed(SDL_Scancode scancode)
@@ -96,7 +99,7 @@ void chip8::key_released(SDL_Scancode scancode)
         keys.set(keymap[scancode], false);
 }
 
-void chip8::update(float delta_time)
+void chip8::update()
 {
     for (int i = 0; i < INSTRUCTION_PER_FRAME; ++i)
     {
@@ -274,7 +277,7 @@ void chip8::update(float delta_time)
         --delay_timer;
     if (sound_timer > 0)
     {
-        // TODO: Play buzzing sound here
+        audio_play.play_sound();
         --sound_timer;
     }
 }

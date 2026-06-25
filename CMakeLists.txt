@@ -14,15 +14,17 @@ add_subdirectory(externals/SDL)
 
 set(SOURCE_FILES
         src/main.cpp
-        src/SDL/window_renderer.cpp
         src/chip8.cpp
         src/chip8_instructions.cpp
+        src/SDL/window_renderer.cpp
+        src/Audio/audio.cpp
 )
 
 set(HEADER_FILES
-        inc/SDL/window_renderer.hpp
         inc/chip8.hpp
         inc/config.hpp
+        inc/SDL/window_renderer.hpp
+        inc/Audio/audio.hpp
 )
 
 set(ALL_FILES ${SOURCE_FILES} ${HEADER_FILES})

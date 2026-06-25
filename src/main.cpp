@@ -14,10 +14,10 @@ struct Context
 
 int init(Context& ctx)
 {
-    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS))
+    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_AUDIO))
         return -1;
 
-    ctx.window_renderer = std::move(window_renderer{"Standard CHIP-8 screen", 960, 540 ,SDL_WINDOW_RESIZABLE});
+    ctx.window_renderer = std::move(window_renderer{"CHIP-8", 960, 540 ,SDL_WINDOW_RESIZABLE});
     ctx.chip = chip8{ctx.path_to_rom, &ctx.window_renderer};
 
     return 0;
@@ -52,7 +52,7 @@ int update(Context& ctx)
             }
         }
 
-        ctx.chip.update(0.0f);
+        ctx.chip.update();
         ctx.chip.render(ctx.window_renderer);
 
         // Limit FPS to 60
@@ -72,10 +72,9 @@ int shutdown(Context& ctx)
     return 0;
 }
 
-#define TEST
 
-#ifdef Release
-#undef TEST
+#ifndef NDEBUG
+#define TEST
 #endif
 
 int main(int argc, char* argv[])
@@ -89,7 +88,7 @@ int main(int argc, char* argv[])
 #ifdef TEST
     argc = 2;
     char arg0[] = "./CHIP8";
-    char arg1[] = "rom/Tetris.ch8";
+    char arg1[] = "rom/Pong.ch8";
     *argv = new char[2];
     argv[0] = arg0;
     argv[1] = arg1;

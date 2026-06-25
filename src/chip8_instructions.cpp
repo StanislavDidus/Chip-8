@@ -258,7 +258,7 @@ void chip8::OP_CXNN()
     uint8_t x = (opcode & 0x0F00) >> 8;
     uint8_t nn = opcode & 0x00FF;
 
-    uint8_t rand = static_cast<uint8_t>(dist(rng));
+    auto rand = static_cast<uint8_t>(dist(rng));
 
     registry[x] = rand & nn;
 }
