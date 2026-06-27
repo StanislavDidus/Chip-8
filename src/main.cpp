@@ -5,11 +5,21 @@
 
 #include "chip8.hpp"
 
+#include "CHIP48/chip48_display.hpp"
+#include "CHIP48/chip48_instructions.hpp"
+#include "CHIP48/chip48_memory.hpp"
+#include "CHIP48/chip48_quirks.hpp"
+
+#include "CHIP8/chip8_display.hpp"
+#include "CHIP8/chip8_instructions.hpp"
+#include "CHIP8/chip8_memory.hpp"
+#include "CHIP8/chip8_quirks.hpp"
+
 struct Context
 {
     char* path_to_rom = nullptr;
     window_renderer window_renderer;
-    chip8 chip;
+    std::unique_ptr<chip8> chip;
 };
 
 int init(Context& ctx)
@@ -18,7 +28,16 @@ int init(Context& ctx)
         return -1;
 
     ctx.window_renderer = std::move(window_renderer{"CHIP-8", 960, 540 ,SDL_WINDOW_RESIZABLE});
-    ctx.chip = chip8{ctx.path_to_rom, &ctx.window_renderer};
+
+    ctx.chip = std::make_unique<chip8>(ctx.window_renderer);
+    int chi48_quirks;
+    ctx.chip->setup_chip8(
+        std::move(std::make_unique<chip48_display>()),
+        std::move(std::make_unique<chip48_quirks>()),
+        std::move(std::make_unique<chip48_instructions>(*ctx.chip)),
+        std::move(std::make_unique<chip48_memory>())
+    );
+    ctx.chip->load_rom(ctx.path_to_rom);
 
     return 0;
 }
@@ -44,16 +63,16 @@ int update(Context& ctx)
                 running = false;
                 break;
             case SDL_EVENT_KEY_DOWN:
-                ctx.chip.key_pressed(event.key.scancode);
+                ctx.chip->key_pressed(event.key.scancode);
                 break;
             case SDL_EVENT_KEY_UP:
-                ctx.chip.key_released(event.key.scancode);
+                ctx.chip->key_released(event.key.scancode);
                 break;
             }
         }
 
-        ctx.chip.update();
-        ctx.chip.render(ctx.window_renderer);
+        ctx.chip->update();
+        ctx.chip->render(ctx.window_renderer);
 
         // Limit FPS to 60
         uint64_t end = SDL_GetTicks();

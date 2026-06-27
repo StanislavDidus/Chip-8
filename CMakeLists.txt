@@ -12,22 +12,60 @@ set(BUILD_SHARED_LIBS OFF CACHE BOOL "Don't build shared libraries." FORCE)
 
 add_subdirectory(externals/SDL)
 
-set(SOURCE_FILES
-        src/main.cpp
-        src/chip8.cpp
-        src/chip8_instructions.cpp
-        src/SDL/window_renderer.cpp
-        src/Audio/audio.cpp
+set(CHIP8_SOURCE_FILES
+        src/CHIP8/chip8_instructions.cpp
 )
 
-set(HEADER_FILES
+set(CHIP48_SOURCE_FILES
+        src/CHIP48/chip48_instructions.cpp
+)
+
+set(SCHIP_SOURCE_FILES)
+
+set(OTHER_SOURCE_FILES
+        src/main.cpp
+        src/chip8.cpp
+        src/SDL/window_renderer.cpp
+        src/Audio/audio.cpp
+        src/instructions.cpp
+)
+
+set(SOURCE_FILES ${CHIP8_SOURCE_FILES} ${CHIP48_SOURCE_FILES} ${SCHIP} ${OTHER_SOURCE_FILES})
+
+set (CHIP8_HEADER_FILES
+        inc/CHIP8/chip8_display.hpp
+        inc/CHIP8/chip8_instructions.hpp
+        inc/CHIP8/chip8_memory.hpp
+        inc/CHIP8/chip8_quirks.hpp
+)
+
+set (CHIP48_HEADER_FILES
+        inc/CHIP48/chip48_display.hpp
+        inc/CHIP48/chip48_instructions.hpp
+        inc/CHIP48/chip48_quirks.hpp
+        inc/CHIP48/chip48_memory.hpp
+)
+
+set (SCHIP_HEADER_FILES
+        inc/SCHIP/schip_display.hpp)
+
+set (OTHER_HEADER_FILES
         inc/chip8.hpp
         inc/config.hpp
         inc/SDL/window_renderer.hpp
         inc/Audio/audio.hpp
+
+        inc/display.hpp
+        inc/instructions.hpp
+        inc/quirks.hpp
+        inc/memory.hpp
+        inc/core.hpp
 )
 
-set(ALL_FILES ${SOURCE_FILES} ${HEADER_FILES})
+set(HEADER_FILES ${CHIP8_HEADER_FILES} ${CHIP48_HEADER_FILES} ${SCHIP_HEADER_FILES} ${OTHER_HEADER_FILES})
+
+set(ALL_FILES ${SOURCE_FILES} ${HEADER_FILES}
+        inc/SCHIP/schip_display.hpp)
 
 add_executable(CHIP8 ${ALL_FILES})
 
