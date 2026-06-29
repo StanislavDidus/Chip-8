@@ -1,5 +1,6 @@
 #include "SCHIP/schip_display.hpp"
 
+#include <algorithm>
 #include <vector>
 
 void schip_display::scroll_down(uint8_t n)
