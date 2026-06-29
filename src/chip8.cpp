@@ -4,6 +4,11 @@
 #include <iostream>
 #include <cstring>
 
+chip8::chip8(window_renderer& renderer)
+    : renderer(renderer)
+{
+
+}
 
 void chip8::setup_chip8(std::unique_ptr<display> display, std::unique_ptr<quirks> quirks,
                         std::unique_ptr<instructions> instructions, std::unique_ptr<memory> memory)
@@ -39,8 +44,8 @@ void chip8::load_rom(const std::filesystem::path& path_to_rom)
     if (file.bad())
         std::cerr << "Failed to read the file." << std::endl;
 
-    // Init texture that we will draw to
-
+    // Save the ROM's name without the extension
+    rom_name = path_to_rom.stem().string();
 
     std::cout << "Loaded ROM." << std::endl;
 }
@@ -88,20 +93,35 @@ void chip8::init_font()
         0xF0, 0x80, 0xF0, 0x80, 0x80  // F
     };
 
-    memcpy(m_memory->access_memory() + FONT_MEMORY_LOCATION, characters, 5 * 16 * sizeof(uint8_t));
+    uint8_t high_res_characters[10 * 16] = {
+        0x3C, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x3C, 0x00, // 0
+        0x0C, 0x1C, 0x0C, 0x0C, 0x0C, 0x0C, 0x0C, 0x0C, 0x3F, 0x00, // 1
+        0x3E, 0x63, 0x03, 0x06, 0x0C, 0x18, 0x30, 0x61, 0x7F, 0x00, // 2
+        0x3E, 0x63, 0x03, 0x03, 0x3E, 0x03, 0x03, 0x63, 0x3E, 0x00, // 3
+        0x06, 0x0E, 0x1E, 0x36, 0x66, 0x7F, 0x06, 0x06, 0x0F, 0x00, // 4
+        0x7F, 0x60, 0x60, 0x60, 0x7C, 0x03, 0x03, 0x63, 0x3E, 0x00, // 5
+        0x1C, 0x30, 0x60, 0x60, 0x7C, 0x66, 0x66, 0x66, 0x3C, 0x00, // 6
+        0x7F, 0x63, 0x03, 0x06, 0x0C, 0x18, 0x18, 0x18, 0x18, 0x00, // 7
+        0x3C, 0x66, 0x66, 0x66, 0x3C, 0x66, 0x66, 0x66, 0x3C, 0x00, // 8
+        0x3C, 0x66, 0x66, 0x66, 0x3E, 0x03, 0x03, 0x06, 0x3C, 0x00, // 9
+        0x18, 0x3C, 0x66, 0x66, 0x7E, 0x66, 0x66, 0x66, 0x66, 0x00, // A
+        0x7C, 0x66, 0x66, 0x7C, 0x66, 0x66, 0x66, 0x66, 0x7C, 0x00, // B
+        0x3C, 0x66, 0x60, 0x60, 0x60, 0x60, 0x60, 0x66, 0x3C, 0x00, // C
+        0x78, 0x6C, 0x66, 0x66, 0x66, 0x66, 0x66, 0x6C, 0x78, 0x00, // D
+        0x7F, 0x62, 0x64, 0x68, 0x78, 0x68, 0x64, 0x62, 0x7F, 0x00, // E
+        0x7F, 0x62, 0x64, 0x68, 0x78, 0x68, 0x60, 0x60, 0xF0, 0x00  // F
+    };
+
+    memcpy(m_memory->access_memory() + LOW_RES_FONT_MEMORY_LOCATION, characters, sizeof(characters));
+    memcpy(m_memory->access_memory() + HIGH_RES_FONT_MEMORY_LOCATION, high_res_characters, sizeof(high_res_characters));
 
     std::cout << "Initialized font." << std::endl;
 }
 
-chip8::chip8(window_renderer& renderer)
-    : renderer(renderer)
-{
-
-}
 
 void chip8::init_render_texture()
 {
-    surface = SDL_CreateSurface(64,32, SDL_PIXELFORMAT_ARGB8888);
+    surface = SDL_CreateSurface(128,64, SDL_PIXELFORMAT_ARGB8888);
     if (!surface) std::cerr << "Could not create surface: " << SDL_GetError() << std::endl;
     texture = SDL_CreateTextureFromSurface(renderer.get_renderer(), surface);
     if (!texture) std::cerr << "Could not create texture: " << SDL_GetError() << std::endl;
@@ -154,13 +174,14 @@ void chip8::render(window_renderer& renderer)
         }
     }
 
-    SDL_UpdateTexture(texture, nullptr, pixels.data(), 64 * sizeof(uint32_t));
+    SDL_UpdateTexture(texture, nullptr, pixels.data(), screen_width * sizeof(uint32_t));
 
     //SDL_SetRenderDrawColor(sdl_renderer, 0,0,0,255);
     SDL_RenderClear(sdl_renderer);
 
     //SDL_SetRenderDrawColor(sdl_renderer, 255,255,255,255);
-    SDL_RenderTexture(sdl_renderer, texture, nullptr, nullptr);
+    SDL_FRect src {0.0f, 0.0f, static_cast<float>(m_display->get_screen_width()), static_cast<float>(m_display->get_screen_height())};
+    SDL_RenderTexture(sdl_renderer, texture, &src, nullptr);
 
     SDL_RenderPresent(sdl_renderer);
 }

@@ -20,7 +20,9 @@ set(CHIP48_SOURCE_FILES
         src/CHIP48/chip48_instructions.cpp
 )
 
-set(SCHIP_SOURCE_FILES)
+set(SCHIP_SOURCE_FILES
+        src/SCHIP/schip_display.cpp
+        src/SCHIP/schip_instructions.cpp)
 
 set(OTHER_SOURCE_FILES
         src/main.cpp
@@ -30,7 +32,7 @@ set(OTHER_SOURCE_FILES
         src/instructions.cpp
 )
 
-set(SOURCE_FILES ${CHIP8_SOURCE_FILES} ${CHIP48_SOURCE_FILES} ${SCHIP} ${OTHER_SOURCE_FILES})
+set(SOURCE_FILES ${CHIP8_SOURCE_FILES} ${CHIP48_SOURCE_FILES} ${SCHIP_SOURCE_FILES} ${OTHER_SOURCE_FILES})
 
 set (CHIP8_HEADER_FILES
         inc/CHIP8/chip8_display.hpp
@@ -47,7 +49,10 @@ set (CHIP48_HEADER_FILES
 )
 
 set (SCHIP_HEADER_FILES
-        inc/SCHIP/schip_display.hpp)
+        inc/SCHIP/schip_display.hpp
+        inc/SCHIP/schip_memory.hpp
+        inc/SCHIP/schip_quirks.hpp
+        inc/SCHIP/schip_instructions.hpp)
 
 set (OTHER_HEADER_FILES
         inc/chip8.hpp

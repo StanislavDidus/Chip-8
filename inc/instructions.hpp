@@ -40,7 +40,7 @@ private:
     void OP_6XNN(); // Set
     void OP_7XNN(); // Add
     void OP_ANNN(); // Set index
-    void OP_DXYN(); // Draw
+    virtual void OP_DXYN(); // Draw
 
     // Skip conditionally
     void OP_3XNN(); // Skip if equal

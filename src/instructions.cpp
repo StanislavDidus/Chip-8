@@ -27,7 +27,15 @@ void instructions::execute_instruction()
     std::cout << "Executing instruction: " << std::hex << opcode << std::endl;
 
     uint8_t last_byte = (opcode & 0xF000) >> 12;
-    table.at(last_byte)();
+
+    try
+    {
+        table.at(last_byte)();
+    }
+    catch (std::exception&)
+    {
+        std::cerr << "Unknown exception: " << std::hex << opcode << std::endl;
+    }
 }
 
 void instructions::init_table()
@@ -396,6 +404,8 @@ void instructions::OP_FX1E()
 
     core.set_index_register(a + b);
 
+    //core.V(0xF) = 0;
+
     if (a > 0 && b > 0 && core.get_index_register() < 0)
         core.V(0xF) = 1;
 }
@@ -419,7 +429,7 @@ void instructions::OP_FX29()
 {
     core& core = owner.get_core();
     uint8_t last_nibble = core.V(get_registry_x_index()) & 0x0F;
-    core.set_index_register(FONT_MEMORY_LOCATION + 5 * last_nibble);
+    core.set_index_register(LOW_RES_FONT_MEMORY_LOCATION + 5 * last_nibble);
 }
 
 void instructions::OP_FX33()

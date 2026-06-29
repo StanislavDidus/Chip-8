@@ -24,7 +24,6 @@ public:
     chip8(window_renderer& renderer);
     ~chip8() = default;
 
-    void init_render_texture();
     void setup_chip8(
         std::unique_ptr<display> display,
         std::unique_ptr<quirks> quirks,
@@ -46,12 +45,17 @@ public:
     instructions& get_instructions() { return *m_instructions; }
     memory& get_memory() { return *m_memory; }
     core& get_core() { return m_core; }
+    const std::string& get_rom_name() const { return rom_name; }
 
     [[nodiscard]] bool is_key_pressed(uint8_t key) { return keys[key]; }
 private:
     // Init
     void init_keys();
     void init_font();
+    void init_render_texture();
+
+    // ROM
+    std::string rom_name {};
 
     // Components
     std::unique_ptr<display> m_display;

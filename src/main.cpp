@@ -1,4 +1,5 @@
 #include <iostream>
+#include <functional>
 
 #include "SDL/window_renderer.hpp"
 #include <SDL3/SDL.h>
@@ -14,6 +15,11 @@
 #include "CHIP8/chip8_instructions.hpp"
 #include "CHIP8/chip8_memory.hpp"
 #include "CHIP8/chip8_quirks.hpp"
+
+#include "SCHIP/schip_display.hpp"
+#include "SCHIP/schip_instructions.hpp"
+#include "SCHIP/schip_memory.hpp"
+#include "SCHIP/schip_quirks.hpp"
 
 struct Context
 {
@@ -32,10 +38,10 @@ int init(Context& ctx)
     ctx.chip = std::make_unique<chip8>(ctx.window_renderer);
     int chi48_quirks;
     ctx.chip->setup_chip8(
-        std::move(std::make_unique<chip48_display>()),
-        std::move(std::make_unique<chip48_quirks>()),
-        std::move(std::make_unique<chip48_instructions>(*ctx.chip)),
-        std::move(std::make_unique<chip48_memory>())
+        std::move(std::make_unique<schip_display>()),
+        std::move(std::make_unique<schip_quirks>()),
+        std::move(std::make_unique<schip_instructions>(*ctx.chip)),
+        std::move(std::make_unique<schip_memory>())
     );
     ctx.chip->load_rom(ctx.path_to_rom);
 
@@ -107,7 +113,7 @@ int main(int argc, char* argv[])
 #ifdef TEST
     argc = 2;
     char arg0[] = "./CHIP8";
-    char arg1[] = "rom/Pong.ch8";
+    char arg1[] = "rom/Joust.ch8";
     *argv = new char[2];
     argv[0] = arg0;
     argv[1] = arg1;
