@@ -4,10 +4,28 @@
 #include <iostream>
 #include <cstring>
 
-#include "SDL3/SDL_oldnames.h"
+chip8::chip8(window_renderer& renderer, uint32_t instructions_per_frame)
+    : renderer(renderer), instructions_per_frame(instructions_per_frame)
+{
 
+}
 
-chip8::chip8(const std::filesystem::path& path_to_rom, window_renderer* renderer)
+void chip8::setup_chip8(std::unique_ptr<display> display, std::unique_ptr<quirks> quirks,
+                        std::unique_ptr<instructions> instructions, std::unique_ptr<memory> memory)
+{
+    m_display = std::move(display);
+    m_quirks = std::move(quirks);
+    m_instructions = std::move(instructions);
+    m_memory = std::move(memory);
+
+    init_keys();
+    init_font();
+    init_render_texture();
+
+    std::cout << "Initialized Chip8." << std::endl;
+}
+
+void chip8::load_rom(const std::filesystem::path& path_to_rom)
 {
     // std::ios::ate makes the cursor move to the end of the file
     std::ifstream file{path_to_rom, std::ios::binary | std::ios::ate};
@@ -21,22 +39,15 @@ chip8::chip8(const std::filesystem::path& path_to_rom, window_renderer* renderer
     file.seekg(0, std::ios::beg);
 
     // Write into memory starting from address 200
-    file.read(reinterpret_cast<char*>(memory + STARTING_POINT), size);
+    file.read(reinterpret_cast<char*>(m_memory->access_memory() + STARTING_POINT), size);
 
     if (file.bad())
         std::cerr << "Failed to read the file." << std::endl;
 
-    // Init texture that we will draw to
-    surface = SDL_CreateSurface(64,32, SDL_PIXELFORMAT_ARGB8888);
-    if (!surface) std::cerr << "Could not create surface: " << SDL_GetError() << std::endl;
-    texture = SDL_CreateTextureFromSurface(renderer->get_renderer(), surface);
-    if (!texture) std::cerr << "Could not create texture: " << SDL_GetError() << std::endl;
-    SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
+    // Save the ROM's name without the extension
+    rom_name = path_to_rom.stem().string();
 
-    init_keys();
-    init_font();
-
-    std::cout << "Initialized Chip8." << std::endl;
+    std::cout << "Loaded ROM." << std::endl;
 }
 
 void chip8::init_keys()
@@ -82,9 +93,39 @@ void chip8::init_font()
         0xF0, 0x80, 0xF0, 0x80, 0x80  // F
     };
 
-    memcpy(memory + FONT_MEMORY_LOCATION, characters, 5 * 16 * sizeof(uint8_t));
+    uint8_t high_res_characters[10 * 16] = {
+        0x3C, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x3C, 0x00, // 0
+        0x0C, 0x1C, 0x0C, 0x0C, 0x0C, 0x0C, 0x0C, 0x0C, 0x3F, 0x00, // 1
+        0x3E, 0x63, 0x03, 0x06, 0x0C, 0x18, 0x30, 0x61, 0x7F, 0x00, // 2
+        0x3E, 0x63, 0x03, 0x03, 0x3E, 0x03, 0x03, 0x63, 0x3E, 0x00, // 3
+        0x06, 0x0E, 0x1E, 0x36, 0x66, 0x7F, 0x06, 0x06, 0x0F, 0x00, // 4
+        0x7F, 0x60, 0x60, 0x60, 0x7C, 0x03, 0x03, 0x63, 0x3E, 0x00, // 5
+        0x1C, 0x30, 0x60, 0x60, 0x7C, 0x66, 0x66, 0x66, 0x3C, 0x00, // 6
+        0x7F, 0x63, 0x03, 0x06, 0x0C, 0x18, 0x18, 0x18, 0x18, 0x00, // 7
+        0x3C, 0x66, 0x66, 0x66, 0x3C, 0x66, 0x66, 0x66, 0x3C, 0x00, // 8
+        0x3C, 0x66, 0x66, 0x66, 0x3E, 0x03, 0x03, 0x06, 0x3C, 0x00, // 9
+        0x18, 0x3C, 0x66, 0x66, 0x7E, 0x66, 0x66, 0x66, 0x66, 0x00, // A
+        0x7C, 0x66, 0x66, 0x7C, 0x66, 0x66, 0x66, 0x66, 0x7C, 0x00, // B
+        0x3C, 0x66, 0x60, 0x60, 0x60, 0x60, 0x60, 0x66, 0x3C, 0x00, // C
+        0x78, 0x6C, 0x66, 0x66, 0x66, 0x66, 0x66, 0x6C, 0x78, 0x00, // D
+        0x7F, 0x62, 0x64, 0x68, 0x78, 0x68, 0x64, 0x62, 0x7F, 0x00, // E
+        0x7F, 0x62, 0x64, 0x68, 0x78, 0x68, 0x60, 0x60, 0xF0, 0x00  // F
+    };
+
+    memcpy(m_memory->access_memory() + LOW_RES_FONT_MEMORY_LOCATION, characters, sizeof(characters));
+    memcpy(m_memory->access_memory() + HIGH_RES_FONT_MEMORY_LOCATION, high_res_characters, sizeof(high_res_characters));
 
     std::cout << "Initialized font." << std::endl;
+}
+
+
+void chip8::init_render_texture()
+{
+    surface = SDL_CreateSurface(128,64, SDL_PIXELFORMAT_ARGB8888);
+    if (!surface) std::cerr << "Could not create surface: " << SDL_GetError() << std::endl;
+    texture = SDL_CreateTextureFromSurface(renderer.get_renderer(), surface);
+    if (!texture) std::cerr << "Could not create texture: " << SDL_GetError() << std::endl;
+    SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
 }
 
 void chip8::key_pressed(SDL_Scancode scancode)
@@ -101,208 +142,46 @@ void chip8::key_released(SDL_Scancode scancode)
 
 void chip8::update()
 {
-    for (int i = 0; i < INSTRUCTION_PER_FRAME; ++i)
+    for (int i = 0; i < instructions_per_frame; ++i)
     {
-        uint8_t first_byte = memory[program_counter];
-        uint8_t second_byte = memory[program_counter + 1];
-        opcode = (first_byte << 8) | second_byte;
-
-        uint8_t last_byte = (opcode & 0xF000) >> 12;
-
-        program_counter += 2;
-
-        switch (last_byte)
-        {
-        case 0x0:
-            switch (opcode)
-            {
-            case 0x00E0:
-                // Clear Screen
-                OP_00E0();
-                break;
-            case 0x00EE:
-                // Return
-                OP_00EE();
-                break;
-            default:
-                    std::cerr << "Unknown instruction was met: " << opcode << std::endl;
-            }
-            break;
-        case 0x1:
-            // Jump
-            OP_1NNN();
-            break;
-        case 0x2:
-            // Call
-            OP_2NNN();
-            break;
-        case 0x3:
-            // Skip if registry value and a given value are equal
-            OP_3XNN();
-            break;
-        case 0x4:
-            // Skip if registry value and a given value are not equal
-            OP_4XNN();
-            break;
-        case 0x5:
-            // Skip if two values are equal
-            OP_5XY0();
-            break;
-        case 0x6:
-            // Set register
-            OP_6XNN();
-            break;
-        case 0x7:
-            // Add to register
-            OP_7XNN();
-            break;
-        case 0x9:
-            // Skip if two values are not equal
-            OP_9XY0();
-            break;
-        case 0xA:
-            // Set index register
-            OP_ANNN();
-            break;
-        case 0xB:
-            OP_BNNN();
-            break;
-        case 0xC:
-            OP_CXNN();
-            break;
-        case 0xD:
-            // Draw
-            OP_DXYN();
-            break;
-        // Logical and Arithmetic instructions
-        case 0x8:
-            {
-                uint8_t n = opcode & 0x000F;
-                switch (n)
-                {
-                case 0x0:
-                    // Set
-                    OP_8XY0();
-                    break;
-                case 0x1:
-                    OP_8XY1();
-                    break;
-                case 0x2:
-                    OP_8XY2();
-                    break;
-                case 0x3:
-                    OP_8XY3();
-                    break;
-                case 0x4:
-                    OP_8XY4();
-                    break;
-                case 0x5:
-                    OP_8XY5();
-                    break;
-                case 0x6:
-                    OP_8XY6();
-                    break;
-                case 0x7:
-                    OP_8XY7();
-                    break;
-                case 0xE:
-                    OP_8XYE();
-                    break;
-                default:
-                    std::cerr << "Unknown instruction was met: " << opcode << std::endl;
-                }
-            }
-            break;
-        case 0xE:
-            {
-                uint8_t nn = opcode & 0x00FF;
-                switch (nn)
-                {
-                case 0x9E:
-                    OP_EX9E();
-                    break;
-                case 0xA1:
-                    OP_EXA1();
-                    break;
-                default:
-                    std::cerr << "Unknown instruction was met: " << opcode << std::endl;
-                }
-            }
-            break;
-        case 0xF:
-            {
-                uint8_t nn = opcode & 0x00FF;
-                switch (nn)
-                {
-                case 0x07:
-                    OP_FX07();
-                    break;
-                case 0x15:
-                    OP_FX15();
-                    break;
-                case 0x18:
-                    OP_FX18();
-                    break;
-                case 0x1E:
-                    OP_FX1E();
-                    break;
-                case 0x0A:
-                    OP_FX0A();
-                    break;
-                case 0x29:
-                    OP_FX29();
-                    break;
-                case 0x33:
-                    OP_FX33();
-                    break;
-                case 0x55:
-                    OP_FX55();
-                    break;
-                case 0x65:
-                    OP_FX65();
-                    break;
-                default:
-                    std::cerr << "Unknown instruction was met: " << opcode << std::endl;
-                }
-            }
-            break;
-        default:
-            std::cerr << "Unknown instruction was met: " << opcode << std::endl;
-            break;
-        }
+        m_instructions->execute_instruction();
     }
 
     // Update timers
-    if (delay_timer > 0)
-        --delay_timer;
-    if (sound_timer > 0)
+    if (m_core.get_delay_timer_value() > 0)
+        m_core.decrease_delay_timer();
+    if (m_core.get_sound_timer_value() > 0)
     {
         audio_play.play_sound();
-        --sound_timer;
+        m_core.decrease_sound_timer();
     }
 }
 
 void chip8::render(window_renderer& renderer)
 {
     SDL_Renderer* sdl_renderer = renderer.get_renderer();
-    uint32_t pixels[64 * 32];
 
-    for (int y = 0; y < 32; ++y)
+    uint8_t screen_width = m_display->get_screen_width();
+    uint8_t screen_height = m_display->get_screen_height();
+    std::vector<uint32_t> pixels(screen_width * screen_height);
+
+    for (int y = 0; y < screen_height; ++y)
     {
-        for (int x = 0; x < 64; ++x)
+        for (int x = 0; x < screen_width; ++x)
         {
-            uint32_t color = (screen[x + y * 64] == 1) ? 0xFFFFFFFF : 0xFF000000;
-            pixels[x + y * 64] = color;
+            uint32_t color = (m_display->get_pixel(x, y) == 1) ? 0xFFFFFFFF : 0xFF000000;
+            pixels[x + y * screen_width] = color;
         }
     }
 
-    SDL_UpdateTexture(texture, nullptr, pixels, 64 * sizeof(uint32_t));
+    SDL_UpdateTexture(texture, nullptr, pixels.data(), screen_width * sizeof(uint32_t));
 
     //SDL_SetRenderDrawColor(sdl_renderer, 0,0,0,255);
     SDL_RenderClear(sdl_renderer);
 
     //SDL_SetRenderDrawColor(sdl_renderer, 255,255,255,255);
-    SDL_RenderTexture(sdl_renderer, texture, nullptr, nullptr);
+    SDL_FRect src {0.0f, 0.0f, static_cast<float>(m_display->get_screen_width()), static_cast<float>(m_display->get_screen_height())};
+    SDL_RenderTexture(sdl_renderer, texture, &src, nullptr);
 
     SDL_RenderPresent(sdl_renderer);
 }
