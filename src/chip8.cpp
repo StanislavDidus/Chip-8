@@ -4,8 +4,8 @@
 #include <iostream>
 #include <cstring>
 
-chip8::chip8(window_renderer& renderer)
-    : renderer(renderer)
+chip8::chip8(window_renderer& renderer, uint32_t instructions_per_frame)
+    : renderer(renderer), instructions_per_frame(instructions_per_frame)
 {
 
 }
@@ -142,7 +142,7 @@ void chip8::key_released(SDL_Scancode scancode)
 
 void chip8::update()
 {
-    for (int i = 0; i < INSTRUCTION_PER_FRAME; ++i)
+    for (int i = 0; i < instructions_per_frame; ++i)
     {
         m_instructions->execute_instruction();
     }

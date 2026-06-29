@@ -24,6 +24,7 @@
 struct Context
 {
     char* path_to_rom = nullptr;
+    int chip8_version = 0;
     window_renderer window_renderer;
     std::unique_ptr<chip8> chip;
 };
@@ -35,14 +36,42 @@ int init(Context& ctx)
 
     ctx.window_renderer = std::move(window_renderer{"CHIP-8", 960, 540 ,SDL_WINDOW_RESIZABLE});
 
-    ctx.chip = std::make_unique<chip8>(ctx.window_renderer);
-    int chi48_quirks;
-    ctx.chip->setup_chip8(
-        std::move(std::make_unique<schip_display>()),
-        std::move(std::make_unique<schip_quirks>()),
-        std::move(std::make_unique<schip_instructions>(*ctx.chip)),
-        std::move(std::make_unique<schip_memory>())
-    );
+    std::unique_ptr<display> display = nullptr;
+    std::unique_ptr<instructions> instructions = nullptr;
+    std::unique_ptr<memory> memory = nullptr;
+    std::unique_ptr<quirks> quirks = nullptr;
+    if (ctx.chip8_version == 1)
+    {
+        ctx.chip = std::make_unique<chip8>(ctx.window_renderer, CHIP8_INSTRUCTION_PER_FRAME);
+        ctx.chip->setup_chip8(
+            std::move(std::make_unique<chip8_display>()),
+            std::move(std::make_unique<chip8_quirks>()),
+            std::move(std::make_unique<chip8_instructions>(*ctx.chip)),
+            std::move(std::make_unique<chip8_memory>()));
+    }
+    else if (ctx.chip8_version == 2)
+    {
+        ctx.chip = std::make_unique<chip8>(ctx.window_renderer, CHIP48_INSTRUCTION_PER_FRAME);
+        ctx.chip->setup_chip8(
+            std::move(std::make_unique<chip48_display>()),
+            std::move(std::make_unique<chip48_quirks>()),
+            std::move(std::make_unique<chip48_instructions>(*ctx.chip)),
+            std::move(std::make_unique<chip48_memory>()));
+    }
+    else if (ctx.chip8_version == 3)
+    {
+        ctx.chip = std::make_unique<chip8>(ctx.window_renderer, SCHIP_INSTRUCTION_PER_FRAME);
+        ctx.chip->setup_chip8(
+            std::move(std::make_unique<schip_display>()),
+            std::move(std::make_unique<schip_quirks>()),
+            std::move(std::make_unique<schip_instructions>(*ctx.chip)),
+            std::move(std::make_unique<schip_memory>()));
+    }
+    else
+    {
+        throw std::runtime_error("Wrong CHIP8 version.");
+    }
+
     ctx.chip->load_rom(ctx.path_to_rom);
 
     return 0;
@@ -121,6 +150,15 @@ int main(int argc, char* argv[])
 
     Context context;
 
+    std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<" << std::endl;
+    std::cout << "Choose the version of CHIP8 you want to use:" << std::endl;
+    std::cout << "1: Chip8 (Standard version that supports older games)" << std::endl;
+    std::cout << "2: Chip48 (Modernized version of Chip8)" << std::endl;
+    std::cout << "3: Super-Chip (Improved version of Chip48 with bigger screen and new capabilities)" << std::endl;
+    std::cout << "Note: Most of the games only support a specific platform" << std::endl;
+    std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<" << std::endl;
+
+    std::cin >> context.chip8_version;
     context.path_to_rom = argv[1];
 
     init(context);

@@ -21,7 +21,7 @@
 class chip8
 {
 public:
-    chip8(window_renderer& renderer);
+    chip8(window_renderer& renderer, uint32_t instructions_per_frame);
     ~chip8() = default;
 
     void setup_chip8(
@@ -56,6 +56,7 @@ private:
 
     // ROM
     std::string rom_name {};
+    uint32_t instructions_per_frame = 0;
 
     // Components
     std::unique_ptr<display> m_display;
