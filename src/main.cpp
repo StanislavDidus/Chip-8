@@ -6,25 +6,20 @@
 
 #include "chip8.hpp"
 
-#include "CHIP48/chip48_display.hpp"
 #include "CHIP48/chip48_instructions.hpp"
-#include "CHIP48/chip48_memory.hpp"
-#include "CHIP48/chip48_quirks.hpp"
 
 #include "CHIP8/chip8_display.hpp"
 #include "CHIP8/chip8_instructions.hpp"
 #include "CHIP8/chip8_memory.hpp"
-#include "CHIP8/chip8_quirks.hpp"
 
 #include "SCHIP/schip_display.hpp"
 #include "SCHIP/schip_instructions.hpp"
-#include "SCHIP/schip_memory.hpp"
-#include "SCHIP/schip_quirks.hpp"
 
 struct Context
 {
     char* path_to_rom = nullptr;
     int chip8_version = 0;
+    int chip8_hz = 0;
     window_renderer window_renderer;
     std::unique_ptr<chip8> chip;
 };
@@ -36,36 +31,36 @@ int init(Context& ctx)
 
     ctx.window_renderer = std::move(window_renderer{"CHIP-8", 960, 540 ,SDL_WINDOW_RESIZABLE});
 
-    std::unique_ptr<display> display = nullptr;
-    std::unique_ptr<instructions> instructions = nullptr;
-    std::unique_ptr<memory> memory = nullptr;
-    std::unique_ptr<quirks> quirks = nullptr;
+    if (ctx.chip8_hz == 1)
+        ctx.chip = std::make_unique<chip8>(ctx.window_renderer, CHIP8_INSTRUCTION_PER_FRAME);
+    else if (ctx.chip8_hz == 2)
+        ctx.chip = std::make_unique<chip8>(ctx.window_renderer, SCHIP_INSTRUCTION_PER_FRAME);
+
+    else
+    {
+        throw std::runtime_error("Wrong CHIP8 hz speed.");
+    }
+
     if (ctx.chip8_version == 1)
     {
-        ctx.chip = std::make_unique<chip8>(ctx.window_renderer, CHIP8_INSTRUCTION_PER_FRAME);
         ctx.chip->setup_chip8(
             std::move(std::make_unique<chip8_display>()),
-            std::move(std::make_unique<chip8_quirks>()),
             std::move(std::make_unique<chip8_instructions>(*ctx.chip)),
             std::move(std::make_unique<chip8_memory>()));
     }
     else if (ctx.chip8_version == 2)
     {
-        ctx.chip = std::make_unique<chip8>(ctx.window_renderer, CHIP48_INSTRUCTION_PER_FRAME);
         ctx.chip->setup_chip8(
-            std::move(std::make_unique<chip48_display>()),
-            std::move(std::make_unique<chip48_quirks>()),
+            std::move(std::make_unique<chip8_display>()),
             std::move(std::make_unique<chip48_instructions>(*ctx.chip)),
-            std::move(std::make_unique<chip48_memory>()));
+            std::move(std::make_unique<chip8_memory>()));
     }
     else if (ctx.chip8_version == 3)
     {
-        ctx.chip = std::make_unique<chip8>(ctx.window_renderer, SCHIP_INSTRUCTION_PER_FRAME);
         ctx.chip->setup_chip8(
             std::move(std::make_unique<schip_display>()),
-            std::move(std::make_unique<schip_quirks>()),
             std::move(std::make_unique<schip_instructions>(*ctx.chip)),
-            std::move(std::make_unique<schip_memory>()));
+            std::move(std::make_unique<chip8_memory>()));
     }
     else
     {
@@ -142,7 +137,7 @@ int main(int argc, char* argv[])
 #ifdef TEST
     argc = 2;
     char arg0[] = "./CHIP8";
-    char arg1[] = "rom/Joust.ch8";
+    char arg1[] = "rom/Spacefight.ch8";
     *argv = new char[2];
     argv[0] = arg0;
     argv[1] = arg1;
@@ -157,8 +152,15 @@ int main(int argc, char* argv[])
     std::cout << "3: Super-Chip (Improved version of Chip48 with bigger screen and new capabilities)" << std::endl;
     std::cout << "Note: Most of the games only support a specific platform" << std::endl;
     std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<" << std::endl;
-
     std::cin >> context.chip8_version;
+
+    std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<" << std::endl;
+    std::cout << "Choose the instructions per second that you want to run the emulator on:" << std::endl;
+    std::cout << "1: 700hz (Common speed for Chip8 and Chip48 games)" << std::endl;
+    std::cout << "2: 1800hz (Required if you want to run Super-Chip games) " << std::endl;
+    std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<" << std::endl;
+    std::cin >> context.chip8_hz;
+
     context.path_to_rom = argv[1];
 
     init(context);

@@ -10,11 +10,9 @@ chip8::chip8(window_renderer& renderer, uint32_t instructions_per_frame)
 
 }
 
-void chip8::setup_chip8(std::unique_ptr<display> display, std::unique_ptr<quirks> quirks,
-                        std::unique_ptr<instructions> instructions, std::unique_ptr<memory> memory)
+void chip8::setup_chip8(std::unique_ptr<display> display, std::unique_ptr<instructions> instructions, std::unique_ptr<memory> memory)
 {
     m_display = std::move(display);
-    m_quirks = std::move(quirks);
     m_instructions = std::move(instructions);
     m_memory = std::move(memory);
 
@@ -193,13 +191,15 @@ void chip8::render(window_renderer& renderer)
         }
     }
 
-    SDL_UpdateTexture(texture, nullptr, pixels.data(), screen_width * sizeof(uint32_t));
+    SDL_FRect src {0.0f, 0.0f, static_cast<float>(m_display->get_screen_width()), static_cast<float>(m_display->get_screen_height())};
+    SDL_Rect src_i {0, 0, static_cast<int>(m_display->get_screen_width()), static_cast<int>(m_display->get_screen_height())};
+
+    SDL_UpdateTexture(texture, &src_i, pixels.data(), screen_width * sizeof(uint32_t));
 
     //SDL_SetRenderDrawColor(sdl_renderer, 0,0,0,255);
     SDL_RenderClear(sdl_renderer);
 
     //SDL_SetRenderDrawColor(sdl_renderer, 255,255,255,255);
-    SDL_FRect src {0.0f, 0.0f, static_cast<float>(m_display->get_screen_width()), static_cast<float>(m_display->get_screen_height())};
     SDL_RenderTexture(sdl_renderer, texture, &src, nullptr);
 
     SDL_RenderPresent(sdl_renderer);

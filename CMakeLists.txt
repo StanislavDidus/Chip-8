@@ -38,20 +38,14 @@ set (CHIP8_HEADER_FILES
         inc/CHIP8/chip8_display.hpp
         inc/CHIP8/chip8_instructions.hpp
         inc/CHIP8/chip8_memory.hpp
-        inc/CHIP8/chip8_quirks.hpp
 )
 
 set (CHIP48_HEADER_FILES
-        inc/CHIP48/chip48_display.hpp
         inc/CHIP48/chip48_instructions.hpp
-        inc/CHIP48/chip48_quirks.hpp
-        inc/CHIP48/chip48_memory.hpp
 )
 
 set (SCHIP_HEADER_FILES
         inc/SCHIP/schip_display.hpp
-        inc/SCHIP/schip_memory.hpp
-        inc/SCHIP/schip_quirks.hpp
         inc/SCHIP/schip_instructions.hpp)
 
 set (OTHER_HEADER_FILES
@@ -62,7 +56,6 @@ set (OTHER_HEADER_FILES
 
         inc/display.hpp
         inc/instructions.hpp
-        inc/quirks.hpp
         inc/memory.hpp
         inc/core.hpp
 )

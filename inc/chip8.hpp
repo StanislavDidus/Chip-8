@@ -10,7 +10,6 @@
 #include "display.hpp"
 #include "instructions.hpp"
 #include "memory.hpp"
-#include "quirks.hpp"
 
 #include "Audio/audio.hpp"
 #include "SDL/window_renderer.hpp"
@@ -26,7 +25,6 @@ public:
 
     void setup_chip8(
         std::unique_ptr<display> display,
-        std::unique_ptr<quirks> quirks,
         std::unique_ptr<instructions> instructions,
         std::unique_ptr<memory> memory
         );
@@ -41,7 +39,6 @@ public:
 
     // Getters
     display& get_display() { return *m_display; }
-    quirks& get_quirks() { return *m_quirks; }
     instructions& get_instructions() { return *m_instructions; }
     memory& get_memory() { return *m_memory; }
     core& get_core() { return m_core; }
@@ -61,7 +58,6 @@ private:
 
     // Components
     std::unique_ptr<display> m_display;
-    std::unique_ptr<quirks> m_quirks;
     std::unique_ptr<instructions> m_instructions;
     std::unique_ptr<memory> m_memory;
     core m_core {};
