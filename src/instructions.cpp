@@ -11,7 +11,22 @@ instructions::~instructions()
 {
 }
 
-void instructions::execute_instruction()
+std::function<void()> instructions::decode(uint16_t opcode)
+{
+    try
+    {
+        this->opcode = opcode;
+        instruction func = table.at((opcode & 0xF000) >> 12)();
+        return func;
+    }
+    catch (std::exception& e)
+    {
+        std::cerr << "Unknown instruction: " << std::hex << opcode << " - " << e.what() << std::endl;
+        throw;
+    }
+}
+
+/*void instructions::execute_instruction()
 {
     core& core = owner.get_core();
     memory& memory = owner.get_memory();
@@ -36,76 +51,76 @@ void instructions::execute_instruction()
     {
         std::cerr << "Unknown exception: " << std::hex << opcode << std::endl;
     }
-}
+}*/
 
 void instructions::init_table()
 {
-    table[0x0] = [this] { Table_0(); };
-    table[0x1] = [this]{ OP_1NNN(); };
-    table[0x3] = [this]{ OP_3XNN(); };
-    table[0x2] = [this]{ OP_2NNN(); };
-    table[0x6] = [this]{ OP_6XNN(); };
-    table[0x7] = [this]{ OP_7XNN(); };
-    table[0xA] = [this]{ OP_ANNN(); };
-    table[0xD] = [this]{ OP_DXYN(); };
-    table[0x4] = [this]{ OP_4XNN(); };
-    table[0x5] = [this]{ OP_5XY0(); };
-    table[0x9] = [this]{ OP_9XY0(); };
-    table[0x8] = [this]{ Table_8(); };
-    table[0xB] = [this]{ OP_BNNN(); };
-    table[0xC] = [this]{ OP_CXNN(); };
-    table[0xE] = [this]{ Table_E(); };
-    table[0xF] = [this]{ Table_F(); };
+    table[0x0] = [this]() -> instruction { return Table_0(); };
+    table[0x1] = [this]() -> instruction { return [this]() { OP_1NNN(); }; };
+    table[0x3] = [this]() -> instruction { return [this]() { OP_3XNN(); }; };
+    table[0x2] = [this]() -> instruction { return [this]() { OP_2NNN(); }; };
+    table[0x6] = [this]() -> instruction { return [this]() { OP_6XNN(); }; };
+    table[0x7] = [this]() -> instruction { return [this]() { OP_7XNN(); }; };
+    table[0xA] = [this]() -> instruction { return [this]() { OP_ANNN(); }; };
+    table[0xD] = [this]() -> instruction { return [this]() { OP_DXYN(); }; };
+    table[0x4] = [this]() -> instruction { return [this]() { OP_4XNN(); }; };
+    table[0x5] = [this]() -> instruction { return [this]() { OP_5XY0(); }; };
+    table[0x9] = [this]() -> instruction { return [this]() { OP_9XY0(); }; };
+    table[0x8] = [this]() -> instruction { return Table_8(); };
+    table[0xB] = [this]() -> instruction { return [this]() { OP_BNNN(); }; };
+    table[0xC] = [this]() -> instruction { return [this]() { OP_CXNN(); }; };
+    table[0xE] = [this]() -> instruction { return Table_E(); };
+    table[0xF] = [this]() -> instruction { return Table_F(); };
 
-    table_0[0x0] = [this]{OP_00E0();};
-    table_0[0xE] = [this]{OP_00EE();};
+    table_0[0x0] = [this]() { OP_00E0(); };
+    table_0[0xE] = [this]() { OP_00EE(); };
 
-    table_8[0x0] = [this]{OP_8XY0();};
-    table_8[0x1] = [this]{OP_8XY1();};
-    table_8[0x2] = [this]{OP_8XY2();};
-    table_8[0x3] = [this]{OP_8XY3();};
-    table_8[0x4] = [this]{OP_8XY4();};
-    table_8[0x5] = [this]{OP_8XY5();};
-    table_8[0x7] = [this]{OP_8XY7();};
-    table_8[0x6] = [this]{OP_8XY6();};
-    table_8[0xE] = [this]{OP_8XYE();};
+    table_8[0x0] = [this]() { OP_8XY0(); };
+    table_8[0x1] = [this]() { OP_8XY1(); };
+    table_8[0x2] = [this]() { OP_8XY2(); };
+    table_8[0x3] = [this]() { OP_8XY3(); };
+    table_8[0x4] = [this]() { OP_8XY4(); };
+    table_8[0x5] = [this]() { OP_8XY5(); };
+    table_8[0x7] = [this]() { OP_8XY7(); };
+    table_8[0x6] = [this]() { OP_8XY6(); };
+    table_8[0xE] = [this]() { OP_8XYE(); };
 
-    table_E[0xE] = [this]{OP_EX9E();};
-    table_E[0x1] = [this]{OP_EXA1();};
+    table_E[0xE] = [this]() { OP_EX9E(); };
+    table_E[0x1] = [this]() { OP_EXA1(); };
 
-    table_F[0x07] = [this]{OP_FX07();};
-    table_F[0x15] = [this]{OP_FX15();};
-    table_F[0x18] = [this]{OP_FX18();};
-    table_F[0x1E] = [this]{OP_FX1E();};
-    table_F[0x0A] = [this]{OP_FX0A();};
-    table_F[0x29] = [this]{OP_FX29();};
-    table_F[0x33] = [this]{OP_FX33();};
-    table_F[0x55] = [this]{OP_FX55();};
-    table_F[0x65] = [this]{OP_FX65();};
+    table_F[0x07] = [this]() { OP_FX07(); };
+    table_F[0x15] = [this]() { OP_FX15(); };
+    table_F[0x18] = [this]() { OP_FX18(); };
+    table_F[0x1E] = [this]() { OP_FX1E(); };
+    table_F[0x0A] = [this]() { OP_FX0A(); };
+    table_F[0x29] = [this]() { OP_FX29(); };
+    table_F[0x33] = [this]() { OP_FX33(); };
+    table_F[0x55] = [this]() { OP_FX55(); };
+    table_F[0x65] = [this]() { OP_FX65(); };
 }
 
-void instructions::Table_0()
+instruction instructions::Table_0()
 {
     uint8_t first_byte = opcode & 0x000F;
-    table_0.at(first_byte)();
+    return table_0.at(first_byte);
 }
 
-void instructions::Table_8()
+instruction instructions::Table_8()
 {
     uint8_t first_byte = opcode & 0x000F;
-    table_8.at(first_byte)();
+    return table_8.at(first_byte);
 }
 
-void instructions::Table_E()
+instruction instructions::Table_E()
 {
     uint8_t first_byte = opcode & 0x000F;
-    table_E.at(first_byte)();
+    return table_E.at(first_byte);
 }
 
-void instructions::Table_F()
+instruction instructions::Table_F()
 {
     uint8_t nn = opcode & 0x00FF;
-    table_F.at(nn)();
+    return table_F.at(nn);
 }
 
 void instructions::OP_00E0()

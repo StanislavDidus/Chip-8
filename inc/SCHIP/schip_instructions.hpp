@@ -10,7 +10,7 @@ public:
 private:
     void init_table();
 
-    void Table_0();
+    instruction Table_0();
 
     void OP_00E0(); // Clear screen
     void OP_00EE(); // Call

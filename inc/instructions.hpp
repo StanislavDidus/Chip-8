@@ -5,17 +5,21 @@
 
 class chip8;
 
-using instruction_table = std::unordered_map<uint8_t, std::function<void()>>;
+using instruction = std::function<void()>;
+using instruction_wrapper = std::function<instruction()>;
+
+using instruction_table = std::unordered_map<uint8_t, instruction>;
+using instruction_table_wrapper = std::unordered_map<uint8_t, instruction_wrapper>;
 class instructions
 {
 public:
     instructions(chip8& chip8);
     virtual ~instructions() = 0;
 
-    void execute_instruction();
+    std::function<void()> decode(uint16_t opcode);
 
 protected:
-    instruction_table table;
+    instruction_table_wrapper table;
     instruction_table table_0;
     instruction_table table_8;
     instruction_table table_E;
@@ -77,8 +81,8 @@ private:
     void OP_FX55(); // Store memory
     void OP_FX65(); // Load memory
 
-    void Table_0();
-    void Table_8();
-    void Table_E();
-    void Table_F();
+    instruction Table_0();
+    instruction Table_8();
+    instruction Table_E();
+    instruction Table_F();
 };

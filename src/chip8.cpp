@@ -128,6 +128,14 @@ void chip8::init_render_texture()
     SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
 }
 
+uint16_t chip8::fetch() const
+{
+    uint16_t pc = m_core.get_pc();
+    uint8_t first_byte = m_memory->access_memory()[pc];
+    uint8_t second_byte = m_memory->access_memory()[pc + 1];
+    return first_byte << 8 | second_byte;
+}
+
 void chip8::key_pressed(SDL_Scancode scancode)
 {
     if (keymap.contains(scancode))
@@ -144,7 +152,18 @@ void chip8::update()
 {
     for (int i = 0; i < instructions_per_frame; ++i)
     {
-        m_instructions->execute_instruction();
+        // Fetch
+        uint16_t opcode = fetch();
+
+        // Increase PC
+        m_core.skip_next();
+
+        // Decode
+        instruction inst = m_instructions->decode(opcode);
+
+        // Execute
+        std::cout << "Executing instruction: " << std::hex << opcode << std::endl;
+        inst();
     }
 
     // Update timers

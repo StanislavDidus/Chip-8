@@ -10,7 +10,7 @@ chip8_instructions::chip8_instructions(chip8& chip8)
 
 void chip8_instructions::init_table()
 {
-    table[0xB] = [this]{OP_BNNN();};
+    table[0xB] = [this]{ return [this] { OP_BNNN();}; };
 
     table_8[0x6] = [this]{ OP_8XY6(); };
     table_8[0xE] = [this]{ OP_8XYE(); };

@@ -14,13 +14,16 @@ schip_instructions::schip_instructions(chip8& chip8)
 
 void schip_instructions::init_table()
 {
-    table[0x0] = [this]{ Table_0(); };
+    table[0x0] = [this]{ return Table_0(); };
     table[0xD] = [this]
     {
-        if (get_n_value() == 0 && static_cast<schip_display*>(&owner.get_display())->is_high_resolution())
-            OP_DXY0();
-        else
-            OP_DXYN();
+        return [this]
+        {
+            if (get_n_value() == 0 && static_cast<schip_display*>(&owner.get_display())->is_high_resolution())
+                OP_DXY0();
+            else
+                OP_DXYN();
+        };
     };
 
     table_0.clear();
@@ -38,16 +41,15 @@ void schip_instructions::init_table()
     table_F[0x85] = [this] { OP_FX85(); };
 }
 
-void schip_instructions::Table_0()
+instruction schip_instructions::Table_0()
 {
     uint8_t second_byte = (opcode & 0x00F0) >> 4;
     if (second_byte == 0xC)
     {
-        OP_00CN();
-        return;
+        return [this]{ OP_00CN(); };
     }
 
-    table_0.at(get_nn_value())();
+    return table_0.at(get_nn_value());
 }
 
 void schip_instructions::OP_00E0()

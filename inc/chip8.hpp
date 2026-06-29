@@ -57,6 +57,7 @@ private:
     // ROM
     std::string rom_name {};
     uint32_t instructions_per_frame = 0;
+    uint16_t fetch() const;
 
     // Components
     std::unique_ptr<display> m_display;
