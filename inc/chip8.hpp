@@ -11,7 +11,7 @@
 #include "instructions.hpp"
 #include "memory.hpp"
 
-#include "Audio/audio.hpp"
+#include "audio.hpp"
 #include "SDL/window_renderer.hpp"
 
 // Variants
@@ -26,8 +26,9 @@ public:
     void setup_chip8(
         std::unique_ptr<display> display,
         std::unique_ptr<instructions> instructions,
-        std::unique_ptr<memory> memory
-        );
+        std::unique_ptr<memory> memory,
+        std::unique_ptr<audio> audio
+    );
 
     void load_rom(const std::filesystem::path& path_to_rom);
 
@@ -42,6 +43,7 @@ public:
     instructions& get_instructions() { return *m_instructions; }
     memory& get_memory() { return *m_memory; }
     core& get_core() { return m_core; }
+    audio& get_audio() { return *m_audio; }
     const std::string& get_rom_name() const { return rom_name; }
 
     [[nodiscard]] bool is_key_pressed(uint8_t key) { return keys[key]; }
@@ -60,6 +62,7 @@ private:
     std::unique_ptr<display> m_display;
     std::unique_ptr<instructions> m_instructions;
     std::unique_ptr<memory> m_memory;
+    std::unique_ptr<audio> m_audio;
     core m_core {};
 
     // Image
@@ -69,9 +72,6 @@ private:
     // Input
     std::unordered_map<SDL_Scancode, uint8_t> keymap {};
     std::bitset<16> keys;
-
-    // Audio
-    audio audio_play {};
 
     // Renderer
     window_renderer& renderer;

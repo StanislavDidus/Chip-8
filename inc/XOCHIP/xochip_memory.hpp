@@ -4,14 +4,14 @@
 
 #include "memory.hpp"
 
-class chip8_memory : public memory
+class xochip_memory : public memory
 {
 public:
-    chip8_memory() = default;
-    ~chip8_memory() override = default;
+    xochip_memory() = default;
+    ~xochip_memory() override = default;
 
     uint8_t* access_memory() override { return memory; }
     uint16_t get_opcode(uint16_t pc) override { return (memory[pc] << 8) | memory[pc + 1]; }
 private:
-    uint8_t memory[4096] {};
+    uint8_t memory[65'536] {};
 };

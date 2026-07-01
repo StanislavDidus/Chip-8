@@ -26,33 +26,6 @@ std::function<void()> instructions::decode(uint16_t opcode)
     }
 }
 
-/*void instructions::execute_instruction()
-{
-    core& core = owner.get_core();
-    memory& memory = owner.get_memory();
-
-    uint16_t pc = core.get_pc();
-
-    uint8_t first_byte = memory.access_memory()[pc];
-    uint8_t second_byte = memory.access_memory()[pc + 1];
-    opcode = (first_byte << 8) | second_byte;
-
-    core.skip_next();
-
-    std::cout << "Executing instruction: " << std::hex << opcode << std::endl;
-
-    uint8_t last_byte = (opcode & 0xF000) >> 12;
-
-    try
-    {
-        table.at(last_byte)();
-    }
-    catch (std::exception&)
-    {
-        std::cerr << "Unknown exception: " << std::hex << opcode << std::endl;
-    }
-}*/
-
 void instructions::init_table()
 {
     table[0x0] = [this]() -> instruction { return Table_0(); };

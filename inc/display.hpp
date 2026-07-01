@@ -13,6 +13,7 @@ public:
     [[nodiscard]] virtual uint8_t get_screen_width() = 0;
     [[nodiscard]] virtual uint8_t get_screen_height() = 0;
     [[nodiscard]] virtual uint8_t& get_pixel(int x, int y) = 0;
+    [[nodiscard]] virtual uint8_t get_pixel_value(int x, int y) = 0;
 
     // Setters
     virtual void clear() = 0;

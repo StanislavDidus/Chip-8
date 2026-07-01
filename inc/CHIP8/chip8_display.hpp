@@ -13,6 +13,7 @@ public:
     [[nodiscard]] uint8_t get_screen_width() override { return 64; }
     [[nodiscard]] uint8_t get_screen_height() override { return 32; }
     [[nodiscard]] uint8_t& get_pixel(int x, int y) override { return screen[x + y * 64]; }
+    [[nodiscard]] uint8_t get_pixel_value(int x, int y) override { return get_pixel(x, y); }
 
     // Setters
     void clear() override { memset(screen, 0, sizeof(screen)); }

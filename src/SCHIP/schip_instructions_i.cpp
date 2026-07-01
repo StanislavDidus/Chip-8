@@ -6,20 +6,24 @@
 #include "chip8.hpp"
 #include "SCHIP/schip_display.hpp"
 
-schip_instructions::schip_instructions(chip8& chip8)
+schip_instructions_i::schip_instructions_i(chip8& chip8)
     : instructions(chip8)
 {
     init_table();
 }
 
-void schip_instructions::init_table()
+schip_instructions_i::~schip_instructions_i()
+{
+}
+
+void schip_instructions_i::init_table()
 {
     table[0x0] = [this]{ return Table_0(); };
     table[0xD] = [this]
     {
         return [this]
         {
-            if (get_n_value() == 0 && static_cast<schip_display*>(&owner.get_display())->is_high_resolution())
+            if (get_n_value() == 0 && static_cast<schip_display_i*>(&owner.get_display())->is_high_resolution())
                 OP_DXY0();
             else
                 OP_DXYN();
@@ -41,7 +45,7 @@ void schip_instructions::init_table()
     table_F[0x85] = [this] { OP_FX85(); };
 }
 
-instruction schip_instructions::Table_0()
+instruction schip_instructions_i::Table_0()
 {
     uint8_t second_byte = (opcode & 0x00F0) >> 4;
     if (second_byte == 0xC)
@@ -52,43 +56,43 @@ instruction schip_instructions::Table_0()
     return table_0.at(get_nn_value());
 }
 
-void schip_instructions::OP_00E0()
+void schip_instructions_i::OP_00E0()
 {
     for (int i = 0; i < 64 * 32; ++i) owner.get_display().clear();
 }
 
-void schip_instructions::OP_00EE()
+void schip_instructions_i::OP_00EE()
 {
     core& core = owner.get_core();
     core.stack_pop();
 }
 
-void schip_instructions::OP_00FF()
+void schip_instructions_i::OP_00FF()
 {
-    static_cast<schip_display*>(&owner.get_display())->enable_high_resolution_scree();
+    static_cast<schip_display_i*>(&owner.get_display())->enable_high_resolution_scree();
 }
 
-void schip_instructions::OP_00FE()
+void schip_instructions_i::OP_00FE()
 {
-    static_cast<schip_display*>(&owner.get_display())->disable_high_resolution_scree();
+    static_cast<schip_display_i*>(&owner.get_display())->disable_high_resolution_scree();
 }
 
-void schip_instructions::OP_00CN()
+void schip_instructions_i::OP_00CN()
 {
-    static_cast<schip_display*>(&owner.get_display())->scroll_down(get_n_value());
+    static_cast<schip_display_i*>(&owner.get_display())->scroll_down(get_n_value());
 }
 
-void schip_instructions::OP_00FB()
+void schip_instructions_i::OP_00FB()
 {
-    static_cast<schip_display*>(&owner.get_display())->scroll_right();
+    static_cast<schip_display_i*>(&owner.get_display())->scroll_right();
 }
 
-void schip_instructions::OP_00FC()
+void schip_instructions_i::OP_00FC()
 {
-    static_cast<schip_display*>(&owner.get_display())->scroll_left();
+    static_cast<schip_display_i*>(&owner.get_display())->scroll_left();
 }
 
-void schip_instructions::OP_DXY0()
+void schip_instructions_i::OP_DXY0()
 {
     core& core = owner.get_core();
     memory& memory = owner.get_memory();
@@ -135,15 +139,17 @@ void schip_instructions::OP_DXY0()
     }
 }
 
-void schip_instructions::OP_DXYN()
+void schip_instructions_i::OP_DXYN()
 {
     core& core = owner.get_core();
     memory& memory = owner.get_memory();
     display& display = owner.get_display();
 
     // Wrap x and y position for a sprite
-    uint8_t x_coord = core.get_registry_value(get_registry_x_index()) % 128;
-    uint8_t y_coord = core.get_registry_value(get_registry_y_index()) % 64;
+    uint8_t screen_width = display.get_screen_width();
+    uint8_t screen_height = display.get_screen_height();
+    uint8_t x_coord = core.get_registry_value(get_registry_x_index()) % screen_width;
+    uint8_t y_coord = core.get_registry_value(get_registry_y_index()) % screen_height;
 
     core.set_registry_value(0xF, 0);
 
@@ -155,7 +161,7 @@ void schip_instructions::OP_DXYN()
 
         uint8_t target_y = y_coord + row;
 
-        if (target_y >= 64) break;
+        if (target_y >= screen_height) break;
 
         for (int i = 0; i < 8; ++i)
         {
@@ -163,7 +169,7 @@ void schip_instructions::OP_DXYN()
 
             uint8_t target_x = x_coord + i;
 
-            if (target_x >= 128) break;
+            if (target_x >= screen_width) break;
 
             uint8_t& screen_pixel = display.get_pixel(target_x, target_y);
 
@@ -180,7 +186,7 @@ void schip_instructions::OP_DXYN()
     }
 }
 
-void schip_instructions::OP_FX30()
+void schip_instructions_i::OP_FX30()
 {
     core& core = owner.get_core();
 
@@ -188,7 +194,7 @@ void schip_instructions::OP_FX30()
     core.set_index_register(HIGH_RES_FONT_MEMORY_LOCATION + 10 * last_nibble);
 }
 
-void schip_instructions::OP_FX75()
+void schip_instructions_i::OP_FX75()
 {
     uint8_t x = get_registry_x_index();
 
@@ -218,7 +224,7 @@ void schip_instructions::OP_FX75()
     save.close();
 }
 
-void schip_instructions::OP_FX85()
+void schip_instructions_i::OP_FX85()
 {
     uint8_t x = get_registry_x_index();
 
@@ -246,7 +252,7 @@ void schip_instructions::OP_FX85()
     save.close();
 }
 
-void schip_instructions::OP_00FD()
+void schip_instructions_i::OP_00FD()
 {
     std::exit(0);
 }

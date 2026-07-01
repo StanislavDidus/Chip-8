@@ -10,11 +10,18 @@ chip8::chip8(window_renderer& renderer, uint32_t instructions_per_frame)
 
 }
 
-void chip8::setup_chip8(std::unique_ptr<display> display, std::unique_ptr<instructions> instructions, std::unique_ptr<memory> memory)
+void chip8::setup_chip8
+    (
+    std::unique_ptr<display> display,
+    std::unique_ptr<instructions> instructions,
+    std::unique_ptr<memory> memory,
+    std::unique_ptr<audio> audio
+    )
 {
     m_display = std::move(display);
     m_instructions = std::move(instructions);
     m_memory = std::move(memory);
+    m_audio = std::move(audio);
 
     init_keys();
     init_font();
@@ -169,7 +176,7 @@ void chip8::update()
         m_core.decrease_delay_timer();
     if (m_core.get_sound_timer_value() > 0)
     {
-        audio_play.play_sound();
+        m_audio->play_sound();
         m_core.decrease_sound_timer();
     }
 }
@@ -186,7 +193,14 @@ void chip8::render(window_renderer& renderer)
     {
         for (int x = 0; x < screen_width; ++x)
         {
-            uint32_t color = (m_display->get_pixel(x, y) == 1) ? 0xFFFFFFFF : 0xFF000000;
+            uint8_t pixel_value = m_display->get_pixel_value(x, y);
+            uint32_t color = 0;
+
+            if (pixel_value == 0) color = color_0;
+            if (pixel_value == 1) color = color_1;
+            if (pixel_value == 2) color = color_2;
+            if (pixel_value == 3) color = color_3;
+
             pixels[x + y * screen_width] = color;
         }
     }

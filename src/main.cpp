@@ -7,6 +7,7 @@
 #include "chip8.hpp"
 
 #include "CHIP48/chip48_instructions.hpp"
+#include "CHIP8/chip8_audio.hpp"
 
 #include "CHIP8/chip8_display.hpp"
 #include "CHIP8/chip8_instructions.hpp"
@@ -14,6 +15,11 @@
 
 #include "SCHIP/schip_display.hpp"
 #include "SCHIP/schip_instructions.hpp"
+
+#include "XOCHIP/xochip_audio.hpp"
+#include "XOCHIP/xochip_display.hpp"
+#include "XOCHIP/xochip_instructions.hpp"
+#include "XOCHIP/xochip_memory.hpp"
 
 struct Context
 {
@@ -44,23 +50,34 @@ int init(Context& ctx)
     if (ctx.chip8_version == 1)
     {
         ctx.chip->setup_chip8(
-            std::move(std::make_unique<chip8_display>()),
-            std::move(std::make_unique<chip8_instructions>(*ctx.chip)),
-            std::move(std::make_unique<chip8_memory>()));
+            std::make_unique<chip8_display>(),
+            std::make_unique<chip8_instructions>(*ctx.chip),
+            std::make_unique<chip8_memory>(),
+            std::make_unique<chip8_audio>());
     }
     else if (ctx.chip8_version == 2)
     {
         ctx.chip->setup_chip8(
-            std::move(std::make_unique<chip8_display>()),
-            std::move(std::make_unique<chip48_instructions>(*ctx.chip)),
-            std::move(std::make_unique<chip8_memory>()));
+            std::make_unique<chip8_display>(),
+            std::make_unique<chip48_instructions>(*ctx.chip),
+            std::make_unique<chip8_memory>(),
+            std::make_unique<chip8_audio>());
     }
     else if (ctx.chip8_version == 3)
     {
         ctx.chip->setup_chip8(
-            std::move(std::make_unique<schip_display>()),
-            std::move(std::make_unique<schip_instructions>(*ctx.chip)),
-            std::move(std::make_unique<chip8_memory>()));
+            std::make_unique<schip_display>(),
+            std::make_unique<schip_instructions>(*ctx.chip),
+            std::make_unique<chip8_memory>(),
+            std::make_unique<chip8_audio>());
+    }
+    else if ( ctx.chip8_version == 4)
+    {
+        ctx.chip->setup_chip8(
+            std::make_unique<xochip_display>(),
+            std::make_unique<xochip_instructions>(*ctx.chip),
+            std::make_unique<xochip_memory>(),
+            std::make_unique<xochip_audio>());
     }
     else
     {
@@ -137,7 +154,7 @@ int main(int argc, char* argv[])
 #ifdef TEST
     argc = 2;
     char arg0[] = "./CHIP8";
-    char arg1[] = "rom/Spacefight.ch8";
+    char arg1[] = "rom/superneatboy.ch8";
     *argv = new char[2];
     argv[0] = arg0;
     argv[1] = arg1;
@@ -150,6 +167,7 @@ int main(int argc, char* argv[])
     std::cout << "1: Chip8 (Standard version that supports older games)" << std::endl;
     std::cout << "2: Chip48 (Modernized version of Chip8)" << std::endl;
     std::cout << "3: Super-Chip (Improved version of Chip48 with bigger screen and new capabilities)" << std::endl;
+    std::cout << "4: XO-Chip (Super-Chip advancement that supports multiple colors and more sound effects)" << std::endl;
     std::cout << "Note: Most of the games only support a specific platform" << std::endl;
     std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<" << std::endl;
     std::cin >> context.chip8_version;
