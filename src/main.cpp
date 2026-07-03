@@ -156,7 +156,12 @@ int main(int argc, char* argv[])
 #ifdef TEST
     argc = 2;
     char arg0[] = "./CHIP8";
+
+    ///
+    // CHANGE THIS PATH TO THE ROM FILE YOU WANT TO RUN
+    ///
     char arg1[] = "rom/octopeg.ch8";
+
     *argv = new char[2];
     argv[0] = arg0;
     argv[1] = arg1;
