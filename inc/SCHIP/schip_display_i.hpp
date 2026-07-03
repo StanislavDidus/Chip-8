@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <display.hpp>
 #include <vector>
+#include <algorithm>
 
 
 static void scroll_screen(uint8_t x, uint8_t y, uint8_t width, uint8_t height, uint8_t* buffer)
