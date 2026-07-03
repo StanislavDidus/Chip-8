@@ -142,7 +142,7 @@ int shutdown(Context& ctx)
 
 
 #ifndef NDEBUG
-#define TEST
+//#define TEST
 #endif
 
 int main(int argc, char* argv[])
@@ -160,7 +160,7 @@ int main(int argc, char* argv[])
     ///
     // CHANGE THIS PATH TO THE ROM FILE YOU WANT TO RUN
     ///
-    char arg1[] = "rom/octopeg.ch8";
+    char arg1[] = "rom/5-quirks.ch8";
 
     *argv = new char[2];
     argv[0] = arg0;

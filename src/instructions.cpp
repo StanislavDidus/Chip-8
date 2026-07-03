@@ -243,11 +243,12 @@ void instructions::OP_8XY4()
 
     core.V(get_registry_x_index()) = a + b;
 
+    core.V(0xF) = 0;
+
     // Check for overflow
-    if (a > 0 && b > 0 && core.V(get_registry_x_index()) < 0)
+    uint16_t result = a + b;
+    if (result > 255)
         core.V(0xF) = 1;
-
-
 }
 
 void instructions::OP_8XY5()
