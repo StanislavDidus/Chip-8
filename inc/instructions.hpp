@@ -62,7 +62,7 @@ private:
     void OP_8XY5(); // Subtract x - y
     void OP_8XY7(); // Subtract y - x
     void OP_8XY6(); // Shift right
-    virtual void OP_8XYE(); // Shift left
+    void OP_8XYE(); // Shift left
 
     void OP_BNNN(); // Jump with offset
     void OP_CXNN(); // Random

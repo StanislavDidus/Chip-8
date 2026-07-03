@@ -1,5 +1,6 @@
 #pragma once
 #include <iostream>
+#include <cmath>
 
 #include "SDL3/SDL_audio.h"
 
