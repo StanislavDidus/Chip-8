@@ -98,7 +98,7 @@ instruction instructions::Table_F()
 
 void instructions::OP_00E0()
 {
-    for (int i = 0; i < 64 * 32; ++i) owner.get_display().clear();
+    owner.get_display().clear();
 }
 
 void instructions::OP_00EE()
@@ -416,7 +416,7 @@ void instructions::OP_FX0A()
 void instructions::OP_FX29()
 {
     core& core = owner.get_core();
-    uint8_t last_nibble = core.V(get_registry_x_index()) & 0x0F;
+    uint8_t last_nibble = core.V(get_registry_x_index()) & 0xF;
     core.set_index_register(LOW_RES_FONT_MEMORY_LOCATION + 5 * last_nibble);
 }
 

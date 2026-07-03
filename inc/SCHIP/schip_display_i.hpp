@@ -58,5 +58,4 @@ public:
 protected:
     uint8_t screen[128 * 64] {};
     bool high_resolution_screen = false;
-
 };

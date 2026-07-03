@@ -23,13 +23,23 @@ private:
     void OP_5XY3(); // load to registers from memory i
     void OP_F000(); // load i with a 16-bit address
     void OP_FN01(); // Select drawing planes
-    void OP_FN02(); // Store audio pattern buffer that is located at i
+    void OP_F002(); // Store audio pattern buffer that is located at i
     void OP_FX3A(); // set audio pattern playback
     void OP_00DN(); // scroll-up
+    void OP_00CN(); // scroll-down
+    void OP_00FB(); // Scroll right
+    void OP_00FC(); // Scroll left
 
     // Overridden instructions
     void OP_DXYN();
     void OP_DXY0();
+
+    void OP_BNNN(); // Jump
+    void OP_8XY6(); // Shift
+    void OP_8XYE();
+    void OP_FX55();
+    void OP_FX65(); // Load and Store
+    void OP_FX1E(); // Add to I
 
     // Skip conditionally overridden to skip 4 byte instruction
     void OP_3XNN(); // Skip if equal

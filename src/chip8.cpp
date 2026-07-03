@@ -167,7 +167,7 @@ void chip8::update()
         instruction inst = m_instructions->decode(opcode);
 
         // Execute
-        std::cout << "Executing instruction: " << std::hex << opcode << std::endl;
+        std::cout << "Executing instruction: " << std::hex << opcode << " at: " << std::hex << m_core.get_pc() << std::endl;
         inst();
     }
 

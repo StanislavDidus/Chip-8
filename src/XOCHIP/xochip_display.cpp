@@ -17,7 +17,7 @@ uint8_t xochip_display::get_pixel_value(int x, int y)
         return 1;
     if (val1 == 0 && val2 == 1)
         return 2;
-    if (val1 == 1 && val2 == 2)
+    if (val1 == 1 && val2 == 1)
         return 3;
     return 0;
 }
@@ -49,9 +49,9 @@ void xochip_display::scroll_left()
 void xochip_display::scroll_right()
 {
     if (active_bitplane == Bitplane::FIRST || active_bitplane == Bitplane::BOTH)
-        scroll_screen(0, 4, get_screen_width(), get_screen_height(), screen);
+        scroll_screen(4, 0, get_screen_width(), get_screen_height(), screen);
     if (active_bitplane == Bitplane::SECOND || active_bitplane == Bitplane::BOTH)
-        scroll_screen(0, 4, get_screen_width(), get_screen_height(), bitplane);
+        scroll_screen(4, 0, get_screen_width(), get_screen_height(), bitplane);
 }
 
 void xochip_display::scroll_up(uint8_t n)
@@ -64,7 +64,7 @@ void xochip_display::scroll_up(uint8_t n)
 
 bool xochip_display::invert_pixel(uint8_t x, uint8_t y, Bitplane bitplane_)
 {
-    if (bitplane_ == Bitplane::FIRST || bitplane_ == Bitplane::BOTH)
+    if (bitplane_ == Bitplane::FIRST)
     {
         uint8_t& p = screen[x + y * get_screen_width()];
         if (p == 1)
@@ -75,7 +75,7 @@ bool xochip_display::invert_pixel(uint8_t x, uint8_t y, Bitplane bitplane_)
         p = 1;
         return false;
     }
-    if (bitplane_ == Bitplane::SECOND || bitplane_ == Bitplane::BOTH)
+    if (bitplane_ == Bitplane::SECOND)
     {
         uint8_t& p = bitplane[x + y * get_screen_width()];
         if (p == 1)

@@ -14,20 +14,21 @@ void xochip_instructions::init_table()
     {
         return [this]
         {
-            if (get_n_value() == 0 && static_cast<schip_display_i*>(&owner.get_display())->is_high_resolution())
+            if (get_n_value() == 0 && static_cast<xochip_display*>(&owner.get_display())->is_high_resolution())
                 OP_DXY0();
             else
                 OP_DXYN();
         };
     };
 
+    table[0xB] = [this] { return [this] { OP_BNNN(); }; };
     table[0x3] = [this] { return [this] { OP_3XNN(); }; };
     table[0x4] = [this] { return [this] { OP_4XNN(); }; };
     table[0x5] = [this] { return Table_5(); };
     table[0x9] = [this] { return [this] { OP_9XY0(); }; };
 
-    table_E[0x9E] = [this] { OP_EX9E(); };
-    table_E[0xA1] = [this] { OP_EXA1(); };
+    table_E[0xE] = [this] { OP_EX9E(); };
+    table_E[0x1] = [this] { OP_EXA1(); };
 
     table_5[0x0] = [this] { OP_5XY0(); };
     table_5[0x2] = [this] { OP_5XY2(); };
@@ -35,13 +36,22 @@ void xochip_instructions::init_table()
 
     table_F[0x00] = [this] { OP_F000(); };
     table_F[0x01] = [this] { OP_FN01(); };
-    table_F[0x02] = [this] { OP_FN02(); };
+    table_F[0x02] = [this] { OP_F002(); };
     table_F[0x3A] = [this] { OP_FX3A(); };
+    table_F[0x55] = [this] { OP_FX55(); };
+    table_F[0x65] = [this] { OP_FX65(); };
+    table_F[0x1E] = [this] { OP_FX1E(); };
+
+    table_0[0xFB] = [this] { OP_00FB(); };
+    table_0[0xFC] = [this] { OP_00FC(); };
+
+    table_8[0x6] = [this] { OP_8XY6(); };
+    table_8[0xE] = [this] { OP_8XYE(); };
 }
 
 instruction xochip_instructions::Table_5()
 {
-    return [this]{ return table_5.at(get_n_value()); };
+    return table_5.at(get_n_value());
 }
 
 instruction xochip_instructions::Table_0()
@@ -51,6 +61,10 @@ instruction xochip_instructions::Table_0()
     if (second_byte == 0xD)
     {
         return [this] { OP_00DN(); };
+    }
+    else if (second_byte == 0xC)
+    {
+        return [this]{ OP_00CN(); };
     }
 
     return table_0.at(get_nn_value());
@@ -64,9 +78,9 @@ void xochip_instructions::OP_5XY2()
     uint8_t x = get_registry_x_index();
     uint8_t y = get_registry_y_index();
 
-    if (x < y)
+    int offset = 0;
+    if (x <= y)
     {
-        int offset = 0;
         for (int i = x; i <= y; ++i, ++offset)
         {
             memory.access_memory()[core.get_index_register() + offset] = core.V(i);
@@ -74,7 +88,6 @@ void xochip_instructions::OP_5XY2()
     }
     else
     {
-        int offset = 0;
         for (int i = x; i >= y; --i, ++offset)
         {
             memory.access_memory()[core.get_index_register() + offset] = core.V(i);
@@ -90,18 +103,17 @@ void xochip_instructions::OP_5XY3()
     uint8_t x = get_registry_x_index();
     uint8_t y = get_registry_y_index();
 
-    if (x < y)
+    int offset = 0;
+    if (x <= y)
     {
-        int offset = 0;
-        for (int i = x; i < y; ++i, ++offset)
+        for (int i = x; i <= y; ++i, ++offset)
         {
             core.V(i) = memory.access_memory()[core.get_index_register() + offset];
         }
     }
     else
     {
-        int offset = 0;
-        for (int i = x; i > y; --i, ++offset)
+        for (int i = x; i >= y; --i, ++offset)
         {
             core.V(i) = memory.access_memory()[core.get_index_register() + offset];
         }
@@ -130,14 +142,14 @@ void xochip_instructions::OP_FN01()
     static_cast<xochip_display*>(&owner.get_display())->set_bitplane(x);
 }
 
-void xochip_instructions::OP_FN02()
+void xochip_instructions::OP_F002()
 {
     audio& audio = owner.get_audio();
     core& core = owner.get_core();
     memory& memory = owner.get_memory();
 
-    uint8_t* src = &static_cast<xochip_audio*>(&audio)->get_audio_pattern_buffer();
-    uint8_t* dst = &memory.access_memory()[core.get_index_register()];
+    uint8_t* dst = &static_cast<xochip_audio*>(&audio)->get_audio_pattern_buffer();
+    uint8_t* src = &memory.access_memory()[core.get_index_register()];
 
     memcpy(dst, src, 16 * sizeof(uint8_t));
 }
@@ -157,6 +169,24 @@ void xochip_instructions::OP_00DN()
 {
     display& display = owner.get_display();
     static_cast<xochip_display*>(&display)->scroll_up(get_n_value());
+}
+
+void xochip_instructions::OP_00CN()
+{
+    display& display = owner.get_display();
+    static_cast<xochip_display*>(&display)->scroll_down(get_n_value());
+}
+
+void xochip_instructions::OP_00FB()
+{
+    display& display = owner.get_display();
+    static_cast<xochip_display*>(&display)->scroll_right();
+}
+
+void xochip_instructions::OP_00FC()
+{
+    display& display = owner.get_display();
+    static_cast<xochip_display*>(&display)->scroll_left();
 }
 
 
@@ -185,18 +215,15 @@ void xochip_instructions::OP_DXY0()
         uint8_t second_byte = memory.access_memory()[core.get_index_register() + row * 2 + 1];
         uint16_t sprite_data = (first_byte << 8) | second_byte;
 
-        uint8_t first_byte1 = memory.access_memory()[core.get_index_register() + row * 2 + 16];
-        uint8_t second_byte1 = memory.access_memory()[core.get_index_register() + row * 2 + 1 + 16];
+        uint8_t first_byte1 = memory.access_memory()[core.get_index_register() + row * 2 + 32];
+        uint8_t second_byte1 = memory.access_memory()[core.get_index_register() + row * 2 + 1 + 32];
         uint16_t sprite_data1 = (first_byte1 << 8) | second_byte1;
 
-        uint8_t target_y = y_coord + row;
-
-        if (target_y >= 64) continue;
+        uint8_t target_y = (y_coord + row) % 64;
 
         for (int i = 0; i < 16; ++i)
         {
-           uint8_t target_x = x_coord + i;
-            if (target_x >= 128) continue;
+           uint8_t target_x = (x_coord + i) % 128;
 
             bool is_sprite_bit_set = ((sprite_data >> (15 - i)) & 1) == 1;
 
@@ -252,20 +279,22 @@ void xochip_instructions::OP_DXYN()
     {
         //uint8_t sprite_data = memory[index_register + row];
         uint8_t sprite_data = memory.access_memory()[core.get_index_register() + row];
-        uint8_t sprite_data1 = memory.access_memory()[core.get_index_register() + row + get_n_value()];
+        uint8_t sprite_data1 = 0;
 
-        uint8_t target_y = y_coord + row;
+        // Only read the second block if BOTH planes are actually being drawn
+        if (active_bitplane == xochip_display::Bitplane::BOTH)
+        {
+            sprite_data1 = memory.access_memory()[core.get_index_register() + row + get_n_value()];
+        }
 
-        if (target_y >= screen_height) break;
+        uint8_t target_y = (y_coord + row) % screen_height;
 
         for (int i = 0; i < 8; ++i)
         {
             bool is_sprite_bit_set = ((sprite_data >> (7 - i)) & 1) == 1;
             bool is_sprite_bit_set1 = ((sprite_data1 >> (7 - i)) & 1) == 1;
 
-            uint8_t target_x = x_coord + i;
-
-            if (target_x >= screen_width) break;
+            uint8_t target_x = (x_coord + i) % screen_width;
 
             if (is_sprite_bit_set && active_bitplane == xochip_display::Bitplane::FIRST)
                 nullified |= xo_display->invert_pixel(target_x, target_y, xochip_display::Bitplane::FIRST);
@@ -284,6 +313,72 @@ void xochip_instructions::OP_DXYN()
     if (nullified)
         core.V(0xF) = 1;
 }
+
+
+void xochip_instructions::OP_BNNN()
+{
+    core& core = owner.get_core();
+    core.set_pc(get_nnn_address() + core.V(0));
+}
+
+void xochip_instructions::OP_8XY6()
+{
+    uint8_t x = get_registry_x_index();
+    uint8_t y = get_registry_y_index();
+    core& core = owner.get_core();
+
+    core.V(x) = core.V(y);
+    uint8_t removed_bit = core.V(x) & 1;
+    core.V(x) = core.V(x) >> 1;
+
+    core.V(0xF) = removed_bit;
+}
+
+void xochip_instructions::OP_8XYE()
+{
+    core& core = owner.get_core();
+    uint8_t x = get_registry_x_index();
+    uint8_t y = get_registry_y_index();
+
+    core.V(x) = core.V(y);
+    uint8_t removed_bit = core.V(x) >> 7;
+    core.V(x) = core.V(x) << 1;
+
+    core.V(0xF) = removed_bit;
+}
+
+
+void xochip_instructions::OP_FX55()
+{
+    core& core = owner.get_core();
+    memory& memory = owner.get_memory();
+    for (int i = 0; i <= get_registry_x_index(); ++i)
+    {
+        memory.access_memory()[core.get_index_register() + i] = core.V(i);
+    }
+
+    core.set_index_register(core.get_index_register() + get_registry_x_index() + 1);
+}
+
+void xochip_instructions::OP_FX65()
+{
+    core& core = owner.get_core();
+    memory& memory = owner.get_memory();
+    for (int i = 0; i <= get_registry_x_index(); ++i)
+    {
+        core.V(i) = memory.access_memory()[core.get_index_register() + i];
+    }
+
+    core.set_index_register(core.get_index_register() + get_registry_x_index() + 1);
+}
+
+void xochip_instructions::OP_FX1E()
+{
+    core& core = owner.get_core();
+
+    core.set_index_register(core.get_index_register() + core.V(get_registry_x_index()));
+}
+
 
 void xochip_instructions::OP_3XNN()
 {
@@ -372,6 +467,7 @@ void xochip_instructions::OP_EX9E()
     uint8_t key = core.V(get_registry_x_index());
 
     if (key <= 0xF)
+    {
         if (owner.is_key_pressed(key))
         {
             if (next_opcode == 0xF000)
@@ -380,8 +476,11 @@ void xochip_instructions::OP_EX9E()
                 core.skip_next();
             }
             else
+            {
                 core.skip_next();
+            }
         }
+    }
 }
 
 void xochip_instructions::OP_EXA1()
@@ -394,6 +493,7 @@ void xochip_instructions::OP_EXA1()
     uint8_t key = core.V(get_registry_x_index());
 
     if (key <= 0xF)
+    {
         if (!owner.is_key_pressed(key))
         {
             if (next_opcode == 0xF000)
@@ -402,8 +502,11 @@ void xochip_instructions::OP_EXA1()
                 core.skip_next();
             }
             else
+            {
                 core.skip_next();
+            }
         }
+    }
 }
 
 void xochip_instructions::draw_sprite(uint8_t bytes_per_row, uint8_t width, uint8_t height)

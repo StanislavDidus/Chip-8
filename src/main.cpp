@@ -41,6 +41,8 @@ int init(Context& ctx)
         ctx.chip = std::make_unique<chip8>(ctx.window_renderer, CHIP8_INSTRUCTION_PER_FRAME);
     else if (ctx.chip8_hz == 2)
         ctx.chip = std::make_unique<chip8>(ctx.window_renderer, SCHIP_INSTRUCTION_PER_FRAME);
+    else if (ctx.chip8_hz == 3)
+        ctx.chip = std::make_unique<chip8>(ctx.window_renderer, XOCHIP_INSTRUCTION_PER_FRAME);
 
     else
     {
@@ -154,7 +156,7 @@ int main(int argc, char* argv[])
 #ifdef TEST
     argc = 2;
     char arg0[] = "./CHIP8";
-    char arg1[] = "rom/superneatboy.ch8";
+    char arg1[] = "rom/octopeg.ch8";
     *argv = new char[2];
     argv[0] = arg0;
     argv[1] = arg1;
@@ -176,6 +178,7 @@ int main(int argc, char* argv[])
     std::cout << "Choose the instructions per second that you want to run the emulator on:" << std::endl;
     std::cout << "1: 700hz (Common speed for Chip8 and Chip48 games)" << std::endl;
     std::cout << "2: 1800hz (Required if you want to run Super-Chip games) " << std::endl;
+    std::cout << "3: 4500hz (Extra huge speed, needed for some bih XOChip games) " << std::endl;
     std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<" << std::endl;
     std::cin >> context.chip8_hz;
 
