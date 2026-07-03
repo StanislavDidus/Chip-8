@@ -7,6 +7,7 @@
 #include "chip8.hpp"
 
 #include "CHIP48/chip48_instructions.hpp"
+#include "CHIP8/chip8_audio.hpp"
 
 #include "CHIP8/chip8_display.hpp"
 #include "CHIP8/chip8_instructions.hpp"
@@ -14,6 +15,11 @@
 
 #include "SCHIP/schip_display.hpp"
 #include "SCHIP/schip_instructions.hpp"
+
+#include "XOCHIP/xochip_audio.hpp"
+#include "XOCHIP/xochip_display.hpp"
+#include "XOCHIP/xochip_instructions.hpp"
+#include "XOCHIP/xochip_memory.hpp"
 
 struct Context
 {
@@ -35,6 +41,8 @@ int init(Context& ctx)
         ctx.chip = std::make_unique<chip8>(ctx.window_renderer, CHIP8_INSTRUCTION_PER_FRAME);
     else if (ctx.chip8_hz == 2)
         ctx.chip = std::make_unique<chip8>(ctx.window_renderer, SCHIP_INSTRUCTION_PER_FRAME);
+    else if (ctx.chip8_hz == 3)
+        ctx.chip = std::make_unique<chip8>(ctx.window_renderer, XOCHIP_INSTRUCTION_PER_FRAME);
 
     else
     {
@@ -44,23 +52,34 @@ int init(Context& ctx)
     if (ctx.chip8_version == 1)
     {
         ctx.chip->setup_chip8(
-            std::move(std::make_unique<chip8_display>()),
-            std::move(std::make_unique<chip8_instructions>(*ctx.chip)),
-            std::move(std::make_unique<chip8_memory>()));
+            std::make_unique<chip8_display>(),
+            std::make_unique<chip8_instructions>(*ctx.chip),
+            std::make_unique<chip8_memory>(),
+            std::make_unique<chip8_audio>());
     }
     else if (ctx.chip8_version == 2)
     {
         ctx.chip->setup_chip8(
-            std::move(std::make_unique<chip8_display>()),
-            std::move(std::make_unique<chip48_instructions>(*ctx.chip)),
-            std::move(std::make_unique<chip8_memory>()));
+            std::make_unique<chip8_display>(),
+            std::make_unique<chip48_instructions>(*ctx.chip),
+            std::make_unique<chip8_memory>(),
+            std::make_unique<chip8_audio>());
     }
     else if (ctx.chip8_version == 3)
     {
         ctx.chip->setup_chip8(
-            std::move(std::make_unique<schip_display>()),
-            std::move(std::make_unique<schip_instructions>(*ctx.chip)),
-            std::move(std::make_unique<chip8_memory>()));
+            std::make_unique<schip_display>(),
+            std::make_unique<schip_instructions>(*ctx.chip),
+            std::make_unique<chip8_memory>(),
+            std::make_unique<chip8_audio>());
+    }
+    else if ( ctx.chip8_version == 4)
+    {
+        ctx.chip->setup_chip8(
+            std::make_unique<xochip_display>(),
+            std::make_unique<xochip_instructions>(*ctx.chip),
+            std::make_unique<xochip_memory>(),
+            std::make_unique<xochip_audio>());
     }
     else
     {
@@ -123,7 +142,7 @@ int shutdown(Context& ctx)
 
 
 #ifndef NDEBUG
-#define TEST
+//#define TEST
 #endif
 
 int main(int argc, char* argv[])
@@ -137,7 +156,12 @@ int main(int argc, char* argv[])
 #ifdef TEST
     argc = 2;
     char arg0[] = "./CHIP8";
-    char arg1[] = "rom/Spacefight.ch8";
+
+    ///
+    // CHANGE THIS PATH TO THE ROM FILE YOU WANT TO RUN
+    ///
+    char arg1[] = "rom/5-quirks.ch8";
+
     *argv = new char[2];
     argv[0] = arg0;
     argv[1] = arg1;
@@ -150,6 +174,7 @@ int main(int argc, char* argv[])
     std::cout << "1: Chip8 (Standard version that supports older games)" << std::endl;
     std::cout << "2: Chip48 (Modernized version of Chip8)" << std::endl;
     std::cout << "3: Super-Chip (Improved version of Chip48 with bigger screen and new capabilities)" << std::endl;
+    std::cout << "4: XO-Chip (Super-Chip advancement that supports multiple colors and more sound effects)" << std::endl;
     std::cout << "Note: Most of the games only support a specific platform" << std::endl;
     std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<" << std::endl;
     std::cin >> context.chip8_version;
@@ -158,6 +183,7 @@ int main(int argc, char* argv[])
     std::cout << "Choose the instructions per second that you want to run the emulator on:" << std::endl;
     std::cout << "1: 700hz (Common speed for Chip8 and Chip48 games)" << std::endl;
     std::cout << "2: 1800hz (Required if you want to run Super-Chip games) " << std::endl;
+    std::cout << "3: 4500hz (Extra huge speed, needed for some bih XOChip games) " << std::endl;
     std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<" << std::endl;
     std::cin >> context.chip8_hz;
 

@@ -14,6 +14,7 @@ add_subdirectory(externals/SDL)
 
 set(CHIP8_SOURCE_FILES
         src/CHIP8/chip8_instructions.cpp
+        src/CHIP8/chip8_audio.cpp
 )
 
 set(CHIP48_SOURCE_FILES
@@ -21,8 +22,16 @@ set(CHIP48_SOURCE_FILES
 )
 
 set(SCHIP_SOURCE_FILES
-        src/SCHIP/schip_display.cpp
-        src/SCHIP/schip_instructions.cpp)
+        src/SCHIP/schip_display_i.cpp
+        src/SCHIP/schip_instructions_i.cpp
+)
+
+set(XOCHIP_SOURCE_FILES
+        src/XOCHIP/xochip_instructions.cpp
+        src/XOCHIP/xochip_display.cpp
+        src/XOCHIP/xochip_audio.cpp
+
+)
 
 set(OTHER_SOURCE_FILES
         src/main.cpp
@@ -32,12 +41,13 @@ set(OTHER_SOURCE_FILES
         src/instructions.cpp
 )
 
-set(SOURCE_FILES ${CHIP8_SOURCE_FILES} ${CHIP48_SOURCE_FILES} ${SCHIP_SOURCE_FILES} ${OTHER_SOURCE_FILES})
+set(SOURCE_FILES ${CHIP8_SOURCE_FILES} ${CHIP48_SOURCE_FILES} ${SCHIP_SOURCE_FILES} ${XOCHIP_SOURCE_FILES} ${OTHER_SOURCE_FILES})
 
 set (CHIP8_HEADER_FILES
         inc/CHIP8/chip8_display.hpp
         inc/CHIP8/chip8_instructions.hpp
         inc/CHIP8/chip8_memory.hpp
+        inc/CHIP8/chip8_audio.hpp
 )
 
 set (CHIP48_HEADER_FILES
@@ -46,13 +56,23 @@ set (CHIP48_HEADER_FILES
 
 set (SCHIP_HEADER_FILES
         inc/SCHIP/schip_display.hpp
-        inc/SCHIP/schip_instructions.hpp)
+        inc/SCHIP/schip_instructions.hpp
+        inc/SCHIP/schip_display_i.hpp
+        inc/SCHIP/schip_instructions_i.hpp
+)
+
+set (XOCHIP_HEADER_FILES
+        inc/XOCHIP/xochip_display.hpp
+        inc/XOCHIP/xochip_memory.hpp
+        inc/XOCHIP/xochip_instructions.hpp
+        inc/XOCHIP/xochip_audio.hpp
+)
 
 set (OTHER_HEADER_FILES
         inc/chip8.hpp
         inc/config.hpp
         inc/SDL/window_renderer.hpp
-        inc/Audio/audio.hpp
+        inc/audio.hpp
 
         inc/display.hpp
         inc/instructions.hpp
@@ -60,7 +80,7 @@ set (OTHER_HEADER_FILES
         inc/core.hpp
 )
 
-set(HEADER_FILES ${CHIP8_HEADER_FILES} ${CHIP48_HEADER_FILES} ${SCHIP_HEADER_FILES} ${OTHER_HEADER_FILES})
+set(HEADER_FILES ${CHIP8_HEADER_FILES} ${CHIP48_HEADER_FILES} ${SCHIP_HEADER_FILES} ${XOCHIP_HEADER_FILES} ${OTHER_HEADER_FILES})
 
 set(ALL_FILES ${SOURCE_FILES} ${HEADER_FILES}
         inc/SCHIP/schip_display.hpp)
