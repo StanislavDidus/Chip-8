@@ -30,7 +30,7 @@ struct Context
     char* path_to_rom = nullptr;
     int chip8_version = 0;
     int chip8_hz = 0;
-    window_renderer window_renderer;
+    window_renderer window_renderer_;
     std::unique_ptr<chip8> chip;
 };
 
@@ -39,7 +39,7 @@ int init(Context& ctx)
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_AUDIO))
         return -1;
 
-    ctx.window_renderer = std::move(window_renderer{"Chip8 Emulator Window", 960, 540 ,SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY});
+    ctx.window_renderer_ = std::move(window_renderer{"Chip8 Emulator Window", 960, 540 ,SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY});
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -48,8 +48,8 @@ int init(Context& ctx)
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // Enable Docking
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;       // Enable multi viewports
-    ImGui_ImplSDL3_InitForSDLRenderer(ctx.window_renderer.get_window(), ctx.window_renderer.get_renderer());
-    ImGui_ImplSDLRenderer3_Init(ctx.window_renderer.get_renderer());
+    ImGui_ImplSDL3_InitForSDLRenderer(ctx.window_renderer_.get_window(), ctx.window_renderer_.get_renderer());
+    ImGui_ImplSDLRenderer3_Init(ctx.window_renderer_.get_renderer());
 
     ImGuiStyle style = ImGui::GetStyle();
     /*
@@ -68,7 +68,7 @@ int init(Context& ctx)
     SDL_SetRenderViewport(ctx.window_renderer.get_renderer(), &rect);
     */
 
-    ctx.chip = std::make_unique<chip8>(ctx.window_renderer);
+    ctx.chip = std::make_unique<chip8>(ctx.window_renderer_);
 
     /*
     if (ctx.chip8_hz == 1)
@@ -131,7 +131,7 @@ int update(Context& ctx)
     SDL_Event event;
     bool running = true;
 
-    SDL_Renderer* renderer = ctx.window_renderer.get_renderer();
+    SDL_Renderer* renderer = ctx.window_renderer_.get_renderer();
     if (!renderer)
         return -1;
 
@@ -159,7 +159,7 @@ int update(Context& ctx)
 
         ctx.chip->update();
 
-        ctx.chip->render(ctx.window_renderer);
+        ctx.chip->render(ctx.window_renderer_);
 
         // Limit FPS to 60
         uint64_t end = SDL_GetTicks();
@@ -173,7 +173,7 @@ int update(Context& ctx)
 
 int shutdown(Context& ctx)
 {
-    ctx.window_renderer.close();
+    ctx.window_renderer_.close();
 
     return 0;
 }
