@@ -6,6 +6,8 @@ window_renderer::window_renderer(const std::string& title, int width, int height
 {
     if (!SDL_CreateWindowAndRenderer(title.c_str(), width, height, flags, &m_window, &m_renderer))
         std::cerr << "Could not create window and renderer: " << SDL_GetError() << std::endl;
+
+    //SDL_SetRenderLogicalPresentation(m_renderer, 960, 540, SDL_LOGICAL_PRESENTATION_LETTERBOX);
 }
 
 window_renderer::~window_renderer()

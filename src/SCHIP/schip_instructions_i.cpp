@@ -23,7 +23,7 @@ void schip_instructions_i::init_table()
     {
         return [this]
         {
-            if (get_n_value() == 0 && static_cast<schip_display_i*>(&owner.get_display())->is_high_resolution())
+            if (get_n_value() == 0 && static_cast<schip_display_i*>(&owner.get_display())->is_high_res())
                 OP_DXY0();
             else
                 OP_DXYN();
@@ -254,5 +254,5 @@ void schip_instructions_i::OP_FX85()
 
 void schip_instructions_i::OP_00FD()
 {
-    std::exit(0);
+    owner.stop_game();
 }

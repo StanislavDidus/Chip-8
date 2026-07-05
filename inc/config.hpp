@@ -19,3 +19,9 @@ constexpr uint32_t color_0 = 0xFF000000;
 constexpr uint32_t color_1 = 0xFFFF00FF;
 constexpr uint32_t color_2 = 0xFF00FFFF;
 constexpr uint32_t color_3 = 0xFFFFFFFF;
+
+struct chip8_config
+{
+    uint8_t chip8_version = 0;
+    std::string rom_path {};
+};

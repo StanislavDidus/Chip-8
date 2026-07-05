@@ -14,7 +14,7 @@ void xochip_instructions::init_table()
     {
         return [this]
         {
-            if (get_n_value() == 0 && static_cast<xochip_display*>(&owner.get_display())->is_high_resolution())
+            if (get_n_value() == 0 && static_cast<xochip_display*>(&owner.get_display())->is_high_res())
                 OP_DXY0();
             else
                 OP_DXYN();

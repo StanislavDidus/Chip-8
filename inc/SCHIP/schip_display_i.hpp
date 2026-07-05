@@ -46,7 +46,7 @@ public:
     [[nodiscard]] uint8_t get_screen_height() override { return high_resolution_screen ? 64 : 32; }
     [[nodiscard]] uint8_t& get_pixel(int x, int y) override { return screen[x + y * get_screen_width()]; }
     [[nodiscard]] uint8_t get_pixel_value(int x, int y) override { return get_pixel(x, y); }
-    [[nodiscard]] bool is_high_resolution() const { return high_resolution_screen; }
+    [[nodiscard]] bool is_high_res() override { return high_resolution_screen; }
 
     // Setters
     void clear() override { memset(screen, 0, sizeof(screen)); }

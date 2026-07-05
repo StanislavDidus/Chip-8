@@ -12,31 +12,29 @@
 #include "memory.hpp"
 
 #include "audio.hpp"
+#include "enums.hpp"
 #include "SDL/window_renderer.hpp"
 
+#include "imgui.h"
+#include "imfilebrowser.h"
 // Variants
 // CHIP8-Classic, CHIP8-48, SUPER-CHIP, XO-CHIP
 
 class chip8
 {
 public:
-    chip8(window_renderer& renderer, uint32_t instructions_per_frame);
-    ~chip8() = default;
-
-    void setup_chip8(
-        std::unique_ptr<display> display,
-        std::unique_ptr<instructions> instructions,
-        std::unique_ptr<memory> memory,
-        std::unique_ptr<audio> audio
-    );
-
-    void load_rom(const std::filesystem::path& path_to_rom);
+    chip8(window_renderer& renderer);
+    ~chip8();
 
     void update();
     void render(window_renderer& renderer);
 
     void key_pressed(SDL_Scancode scancode);
     void key_released(SDL_Scancode scancode);
+
+    void pause_game();
+    void resume_game();
+    void stop_game();
 
     // Getters
     display& get_display() { return *m_display; }
@@ -52,6 +50,9 @@ private:
     void init_keys();
     void init_font();
     void init_render_texture();
+
+    void setup_chip8(uint8_t version);
+    void load_rom(const std::filesystem::path& path_to_rom);
 
     // ROM
     std::string rom_name {};
@@ -75,4 +76,15 @@ private:
 
     // Renderer
     window_renderer& renderer;
+
+    // ImGui window
+    void render_launch_window();
+    void render_viewport_window();
+
+    ImGui::FileBrowser file_dialog;
+
+    chip8_status status = chip8_status::MENU;
+    float game_timer = 0.0f;
+
+    chip8_config config {};
 };
