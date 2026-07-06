@@ -39,7 +39,13 @@ int init(Context& ctx)
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_AUDIO))
         return -1;
 
+
     ctx.window_renderer_ = std::move(window_renderer{"Chip8 Emulator Window", 960, 540 ,SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY});
+
+    // Setup icon
+    SDL_Surface* icon_surface = SDL_LoadPNG("assets/sprites/icon.png");
+    SDL_SetWindowIcon(ctx.window_renderer_.get_window(), icon_surface);
+    SDL_DestroySurface(icon_surface);
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();

@@ -17,6 +17,7 @@
 
 #include "imgui.h"
 #include "imfilebrowser.h"
+#include "logger.hpp"
 // Variants
 // CHIP8-Classic, CHIP8-48, SUPER-CHIP, XO-CHIP
 
@@ -51,12 +52,14 @@ private:
     void init_font();
     void init_render_texture();
 
+    void setup_from_config();
     void setup_chip8(uint8_t version);
     void load_rom(const std::filesystem::path& path_to_rom);
 
     // ROM
     std::string rom_name {};
-    uint32_t instructions_per_frame = 0;
+    int32_t instructions_per_second = 0;
+    int32_t instructions_per_frame = 0;
     uint16_t fetch() const;
 
     // Components
@@ -77,9 +80,14 @@ private:
     // Renderer
     window_renderer& renderer;
 
+    // Logger
+    logger m_logger {};
+
     // ImGui window
     void render_launch_window();
+    void render_log_window();
     void render_viewport_window();
+    void render_additional_windows();
 
     ImGui::FileBrowser file_dialog;
 

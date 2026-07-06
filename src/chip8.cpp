@@ -47,7 +47,6 @@ void chip8::setup_chip8(uint8_t version)
         m_memory = std::make_unique<chip8_memory>();
         m_audio = std::make_unique<chip8_audio>();
         m_core = core{};
-        instructions_per_frame = CHIP8_INSTRUCTION_PER_FRAME;
     }
     else if (version == 1)
     {
@@ -56,7 +55,6 @@ void chip8::setup_chip8(uint8_t version)
         m_memory = std::make_unique<chip8_memory>();
         m_audio = std::make_unique<chip8_audio>();
         m_core = core{};
-        instructions_per_frame = CHIP48_INSTRUCTION_PER_FRAME;
     }
     else if (version == 2)
     {
@@ -65,7 +63,6 @@ void chip8::setup_chip8(uint8_t version)
         m_memory = std::make_unique<chip8_memory>();
         m_audio = std::make_unique<chip8_audio>();
         m_core = core{};
-        instructions_per_frame = SCHIP_INSTRUCTION_PER_FRAME;
     }
     else if (version == 3)
     {
@@ -74,7 +71,6 @@ void chip8::setup_chip8(uint8_t version)
         m_memory = std::make_unique<xochip_memory>();
         m_audio = std::make_unique<xochip_audio>();
         m_core = core{};
-        instructions_per_frame = XOCHIP_INSTRUCTION_PER_FRAME;
     }
     else
     {
@@ -91,10 +87,13 @@ void chip8::load_rom(const std::filesystem::path& path_to_rom)
     // std::ios::ate makes the cursor move to the end of the file
     std::ifstream file{path_to_rom, std::ios::binary | std::ios::ate};
     if (!file)
-        std::cerr << "Could not open file for reading." << std::endl;
+       throw std::runtime_error{"Could not open file for reading."};
 
     // Get actual file size
     std::streamsize size = file.tellg();
+    std::streamsize max_size = m_memory->get_size() - STARTING_POINT;
+    if (size > max_size)
+        throw std::runtime_error{"Rom size exceeds the size of the available memory."};
 
     // Move the pointer back to the beginning
     file.seekg(0, std::ios::beg);
@@ -103,7 +102,7 @@ void chip8::load_rom(const std::filesystem::path& path_to_rom)
     file.read(reinterpret_cast<char*>(m_memory->access_memory() + STARTING_POINT), size);
 
     if (file.bad())
-        std::cerr << "Failed to read the file." << std::endl;
+        throw std::runtime_error{"Failed to read the file."};
 
     // Save the ROM's name without the extension
     rom_name = path_to_rom.stem().string();
@@ -194,6 +193,21 @@ void chip8::init_render_texture()
     std::cout << "Initialized texture target." << std::endl;
 }
 
+void chip8::setup_from_config()
+{
+    try
+    {
+        setup_chip8(config.chip8_version);
+        load_rom(config.rom_path);
+
+        status = chip8_status::PLAYING;
+    }
+    catch (std::exception& e)
+    {
+        m_logger.log(std::format("Error occured during Chip8 initialization: {}", e.what()));
+    }
+}
+
 uint16_t chip8::fetch() const
 {
     uint16_t pc = m_core.get_pc();
@@ -231,32 +245,45 @@ void chip8::stop_game()
 
 void chip8::update()
 {
-    if (status == chip8_status::PLAYING)
+    try
     {
-        for (int i = 0; i < instructions_per_frame; ++i)
+        if (status == chip8_status::PLAYING)
         {
-            // Fetch
-            uint16_t opcode = fetch();
+            for (int i = 0; i < instructions_per_frame; ++i)
+            {
+                // Fetch
+                uint16_t opcode = fetch();
 
-            // Increase PC
-            m_core.skip_next();
+                // Increase PC
+                m_core.skip_next();
 
-            // Decode
-            instruction inst = m_instructions->decode(opcode);
+                // Decode
+                instruction inst = m_instructions->decode(opcode);
 
-            // Execute
-            std::cout << "Executing instruction: " << std::hex << opcode << " at: " << std::hex << m_core.get_pc() << std::endl;
-            inst();
+                // Execute
+                std::cout << "Executing instruction: " << std::hex << opcode << " at: " << std::hex << m_core.get_pc() << std::endl;
+                inst();
+
+                // Stop update look after 00DFD instruction
+                if (status == chip8_status::MENU)
+                    break;
+            }
+
+            // Update timers
+            if (m_core.get_delay_timer_value() > 0)
+                m_core.decrease_delay_timer();
+            if (m_core.get_sound_timer_value() > 0)
+            {
+                m_audio->play_sound();
+                m_core.decrease_sound_timer();
+            }
         }
-
-        // Update timers
-        if (m_core.get_delay_timer_value() > 0)
-            m_core.decrease_delay_timer();
-        if (m_core.get_sound_timer_value() > 0)
-        {
-            m_audio->play_sound();
-            m_core.decrease_sound_timer();
-        }
+    }
+    catch (std::exception& e)
+    {
+        m_logger.log(std::format("Error encountered when running: {}", e.what()));
+        m_logger.log(std::format("Stopping the game", e.what()));
+        stop_game();
     }
 }
 
@@ -302,7 +329,9 @@ void chip8::render(window_renderer& renderer)
     ImGui::DockSpaceOverViewport();
     ImGui::ShowDemoWindow();
     render_launch_window();
+    render_log_window();
     render_viewport_window();
+    render_additional_windows();
 
     // Render ImGui
     ImGui::Render();
@@ -325,6 +354,12 @@ void chip8::render_launch_window()
 {
     ImGui::Begin("Launch");
 
+    if (ImGui::BeginMenu("Settings"))
+    {
+        ImGui::MenuItem("Color settings", nullptr, &config.show_color_settings);
+        ImGui::EndMenu();
+    }
+
     static char path_buffer[128] {};
     ImVec2 avail = ImGui::GetContentRegionAvail();
 
@@ -338,6 +373,7 @@ void chip8::render_launch_window()
                 "If you never wish to see this text again uncheck the checkbox in the \"settings\" .\n");
 
     ImGui::Spacing();
+    ImGui::Separator();
 
     ImGui::Text("Path to ROM");
 
@@ -365,6 +401,21 @@ void chip8::render_launch_window()
 
     ImGui::Spacing();
 
+    ImGui::Text("Instruction execution speed");
+
+    // Choose Chip8 instruction executing speed
+    if (ImGui::SliderInt("##slider", &instructions_per_second, 0, 10'000))
+    {
+        instructions_per_frame = static_cast<int32_t>(static_cast<float>(instructions_per_second) / 60.0f);
+    }
+    if (ImGui::Button("Chip8")) {instructions_per_second = CHIP8_INSTRUCTIONS_PER_SECOND; instructions_per_frame = CHIP8_INSTRUCTION_PER_FRAME; }
+    ImGui::SameLine();
+    if (ImGui::Button("Super-Chip")) {instructions_per_second = SCHIP_INSTRUCTIONS_PER_SECOND; instructions_per_frame = SCHIP_INSTRUCTION_PER_FRAME; }
+    ImGui::SameLine();
+    if (ImGui::Button("XO-Chip")) {instructions_per_second = XOCHIP_INSTRUCTIONS_PER_SECOND; instructions_per_frame = XOCHIP_INSTRUCTION_PER_FRAME; }
+
+    ImGui::Spacing();
+
     ImGui::Text("Launch options");
 
     // Start game
@@ -373,10 +424,7 @@ void chip8::render_launch_window()
         config.chip8_version = selected_version;
         config.rom_path = path_buffer;
 
-        setup_chip8(config.chip8_version);
-        load_rom(config.rom_path);
-
-        status = chip8_status::PLAYING;
+        setup_from_config();
     }
 
     ImGui::SameLine();
@@ -417,6 +465,8 @@ void chip8::render_launch_window()
         }
     }
 
+    ImGui::Spacing();
+
     ImGui::End();
 
     file_dialog.Display();
@@ -430,6 +480,31 @@ void chip8::render_launch_window()
         strncpy_s(path_buffer, sizeof(path_buffer), selected_path.c_str(), _TRUNCATE);
         file_dialog.ClearSelected();
     }
+}
+
+void chip8::render_log_window()
+{
+
+    ImGui::Begin("Log");
+
+    ImGui::Text("Log information will be displayed here");
+    if (ImGui::Button("Clear"))
+    {
+        m_logger.clear();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Copy"))
+    {
+        m_logger.copy();
+    }
+    ImGui::Spacing();
+    const auto& logs = m_logger.get_logs();
+    for (const auto& log : logs)
+    {
+        ImGui::TextWrapped(log.c_str());
+    }
+
+    ImGui::End();
 }
 
 void chip8::render_viewport_window()
@@ -472,4 +547,19 @@ void chip8::render_viewport_window()
     }
 
     ImGui::End();
+}
+
+void chip8::render_additional_windows()
+{
+    if (config.show_color_settings)
+    {
+        if (ImGui::Begin("Color settings", &config.show_color_settings))
+        {
+            ImGui::ColorPicker3("0 color", config.color_0);
+            ImGui::ColorPicker3("1 color", config.color_1);
+            ImGui::ColorPicker3("2 Color", config.color_2);
+            ImGui::ColorPicker3("3 Color", config.color_3);
+        }
+        ImGui::End();
+    }
 }

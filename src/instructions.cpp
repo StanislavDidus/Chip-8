@@ -21,8 +21,7 @@ std::function<void()> instructions::decode(uint16_t opcode)
     }
     catch (std::exception& e)
     {
-        std::cerr << "Unknown instruction: " << std::hex << opcode << " - " << e.what() << std::endl;
-        throw;
+        throw std::runtime_error{std::format("Unknown instruction: {:x} at {}", opcode, e.what())};
     }
 }
 

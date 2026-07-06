@@ -95,6 +95,7 @@ set (OTHER_HEADER_FILES
         inc/memory.hpp
         inc/core.hpp
         inc/enums.hpp
+        inc/logger.hpp
 )
 
 set(HEADER_FILES ${CHIP8_HEADER_FILES} ${CHIP48_HEADER_FILES} ${SCHIP_HEADER_FILES} ${XOCHIP_HEADER_FILES} ${OTHER_HEADER_FILES})

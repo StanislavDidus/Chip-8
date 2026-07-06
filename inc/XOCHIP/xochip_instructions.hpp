@@ -48,6 +48,4 @@ private:
     void OP_9XY0(); // Skip if not equal
     void OP_EX9E(); // Skip if key is pressed
     void OP_EXA1(); // SKip if key is not pressed
-
-    void draw_sprite(uint8_t bytes_per_row, uint8_t width, uint8_t height);
 };

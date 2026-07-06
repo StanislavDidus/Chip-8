@@ -24,4 +24,10 @@ struct chip8_config
 {
     uint8_t chip8_version = 0;
     std::string rom_path {};
+    bool show_color_settings = false;
+
+    float color_0[4];
+    float color_1[4];
+    float color_2[4];
+    float color_3[4];
 };

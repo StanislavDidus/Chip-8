@@ -6,6 +6,7 @@
 #include "chip8.hpp"
 #include "XOCHIP/xochip_audio.hpp"
 #include "XOCHIP/xochip_display.hpp"
+#include "XOCHIP/xochip_memory.hpp"
 
 void xochip_instructions::init_table()
 {
@@ -507,21 +508,4 @@ void xochip_instructions::OP_EXA1()
             }
         }
     }
-}
-
-void xochip_instructions::draw_sprite(uint8_t bytes_per_row, uint8_t width, uint8_t height)
-{
-    core& core = owner.get_core();
-    memory& memory = owner.get_memory();
-    display& display = owner.get_display();
-
-    auto* xo_display = static_cast<xochip_display*>(&display);
-    xochip_display::Bitplane active_bitplane = xo_display->get_active_bitplane();
-
-    uint16_t sprite_data = 0;
-    for (int i = 0; i < bytes_per_row; ++i)
-    {
-        //sprite_data |= memory.access_memory()[core.get_index_register() + i] << (i * 8);
-    }
-
 }
