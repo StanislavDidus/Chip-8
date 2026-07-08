@@ -34,11 +34,6 @@ private:
     void OP_DXYN();
     void OP_DXY0();
 
-    void OP_BNNN(); // Jump
-    void OP_8XY6(); // Shift
-    void OP_8XYE();
-    void OP_FX55();
-    void OP_FX65(); // Load and Store
     void OP_FX1E(); // Add to I
 
     // Skip conditionally overridden to skip 4 byte instruction
@@ -48,6 +43,4 @@ private:
     void OP_9XY0(); // Skip if not equal
     void OP_EX9E(); // Skip if key is pressed
     void OP_EXA1(); // SKip if key is not pressed
-
-    void draw_sprite(uint8_t bytes_per_row, uint8_t width, uint8_t height);
 };

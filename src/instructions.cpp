@@ -21,8 +21,7 @@ std::function<void()> instructions::decode(uint16_t opcode)
     }
     catch (std::exception& e)
     {
-        std::cerr << "Unknown instruction: " << std::hex << opcode << " - " << e.what() << std::endl;
-        throw;
+        throw std::runtime_error{std::format("Unknown instruction: {:x} at {}", opcode, e.what())};
     }
 }
 
@@ -143,10 +142,16 @@ void instructions::OP_DXYN()
     core& core = owner.get_core();
     memory& memory = owner.get_memory();
     display& display = owner.get_display();
+    quirks& quirks = owner.get_quirks();
 
-    // Wrap x and y position for a sprite
-    uint8_t x_coord = core.get_registry_value(get_registry_x_index()) % 64;
-    uint8_t y_coord = core.get_registry_value(get_registry_y_index()) % 32;
+    // Get sprite x and y coords
+    uint8_t x_coord = core.get_registry_value(get_registry_x_index());
+    uint8_t y_coord = core.get_registry_value(get_registry_y_index());
+    if (!quirks.clipping)
+    {
+        x_coord %= 64;
+        y_coord %= 32;
+    }
 
     core.set_registry_value(0xF, 0);
 
@@ -219,18 +224,27 @@ void instructions::OP_8XY0()
 void instructions::OP_8XY1()
 {
     core& core = owner.get_core();
+
+    if (owner.get_quirks().vf_reset) core.V(0xF)  = 0;
+
     core.V(get_registry_x_index()) |= core.V(get_registry_y_index());
 }
 
 void instructions::OP_8XY2()
 {
     core& core = owner.get_core();
+
+    if (owner.get_quirks().vf_reset) core.V(0xF)  = 0;
+
     core.V(get_registry_x_index()) &= core.V(get_registry_y_index());
 }
 
 void instructions::OP_8XY3()
 {
     core& core = owner.get_core();
+
+    if (owner.get_quirks().vf_reset) core.V(0xF)  = 0;
+
     core.V(get_registry_x_index()) ^= core.V(get_registry_y_index());
 }
 
@@ -281,13 +295,10 @@ void instructions::OP_8XY7()
 
 void instructions::OP_8XY6()
 {
-    /*if constexpr (!CHIP48_IMPLEMENTATION)
-    {
-        registry[x] = registry[y];
-    }*/
-
     uint8_t x = get_registry_x_index();
     core& core = owner.get_core();
+
+    if (!owner.get_quirks().shifting) core.V(x) = core.V(get_registry_y_index());
 
     uint8_t removed_bit = core.V(x) & 1;
     core.V(x) = core.V(x) >> 1;
@@ -299,14 +310,8 @@ void instructions::OP_8XYE()
 {
     core& core = owner.get_core();
     uint8_t x = get_registry_x_index();
-    uint8_t y = get_registry_y_index();
 
-    /*
-    if constexpr (!CHIP48_IMPLEMENTATION)
-    {
-        registry[x] = registry[y];
-    }
-    */
+    if (!owner.get_quirks().shifting) core.V(x) = core.V(get_registry_y_index());
 
     uint8_t removed_bit = core.V(x) >> 7;
     core.V(x) = core.V(x) << 1;
@@ -318,14 +323,8 @@ void instructions::OP_BNNN()
 {
     core& core = owner.get_core();
 
-    /*
-    if constexpr (!CHIP48_IMPLEMENTATION)
-    {
-        program_counter = nnn + registry[0x0];
-    }
-    */
-
-    core.set_pc(get_nnn_address() + core.V(get_registry_x_index()));
+    if (owner.get_quirks().jumping) core.set_pc(get_nnn_address() + core.V(get_registry_x_index()));
+    else core.set_pc(get_nnn_address() + core.V(0x0));
 }
 
 
@@ -436,30 +435,27 @@ void instructions::OP_FX33()
 
 void instructions::OP_FX55()
 {
-    /*
-    if constexpr (!CHIP48_IMPLEMENTATION)
-        index_register += x;
-        */
-
     core& core = owner.get_core();
     memory& memory = owner.get_memory();
+
     for (int i = 0; i <= get_registry_x_index(); ++i)
     {
        memory.access_memory()[core.get_index_register() + i] = core.V(i);
     }
+
+    if (owner.get_quirks().memory) core.set_index_register(core.get_index_register() + get_registry_x_index() + 1);
+
 }
 
 void instructions::OP_FX65()
 {
-    /*
-    if constexpr (!CHIP48_IMPLEMENTATION)
-        index_register += x;
-        */
-
     core& core = owner.get_core();
     memory& memory = owner.get_memory();
+
     for (int i = 0; i <= get_registry_x_index(); ++i)
     {
         core.V(i) = memory.access_memory()[core.get_index_register() + i];
     }
+
+    if (owner.get_quirks().memory) core.set_index_register(core.get_index_register() + get_registry_x_index() + 1);
 }

@@ -6,6 +6,7 @@
 #include "chip8.hpp"
 #include "XOCHIP/xochip_audio.hpp"
 #include "XOCHIP/xochip_display.hpp"
+#include "XOCHIP/xochip_memory.hpp"
 
 void xochip_instructions::init_table()
 {
@@ -14,14 +15,13 @@ void xochip_instructions::init_table()
     {
         return [this]
         {
-            if (get_n_value() == 0 && static_cast<xochip_display*>(&owner.get_display())->is_high_resolution())
+            if (get_n_value() == 0 && static_cast<xochip_display*>(&owner.get_display())->is_high_res())
                 OP_DXY0();
             else
                 OP_DXYN();
         };
     };
 
-    table[0xB] = [this] { return [this] { OP_BNNN(); }; };
     table[0x3] = [this] { return [this] { OP_3XNN(); }; };
     table[0x4] = [this] { return [this] { OP_4XNN(); }; };
     table[0x5] = [this] { return Table_5(); };
@@ -38,15 +38,11 @@ void xochip_instructions::init_table()
     table_F[0x01] = [this] { OP_FN01(); };
     table_F[0x02] = [this] { OP_F002(); };
     table_F[0x3A] = [this] { OP_FX3A(); };
-    table_F[0x55] = [this] { OP_FX55(); };
-    table_F[0x65] = [this] { OP_FX65(); };
     table_F[0x1E] = [this] { OP_FX1E(); };
 
     table_0[0xFB] = [this] { OP_00FB(); };
     table_0[0xFC] = [this] { OP_00FC(); };
 
-    table_8[0x6] = [this] { OP_8XY6(); };
-    table_8[0xE] = [this] { OP_8XYE(); };
 }
 
 instruction xochip_instructions::Table_5()
@@ -195,10 +191,16 @@ void xochip_instructions::OP_DXY0()
     core& core = owner.get_core();
     memory& memory = owner.get_memory();
     display& display = owner.get_display();
+    quirks& quirks = owner.get_quirks();
 
-    // Wrap x and y position for a sprite
-    uint8_t x_coord = core.get_registry_value(get_registry_x_index()) % 128;
-    uint8_t y_coord = core.get_registry_value(get_registry_y_index()) % 64;
+    // Get sprite x and y coords
+    uint8_t x_coord = core.get_registry_value(get_registry_x_index());
+    uint8_t y_coord = core.get_registry_value(get_registry_y_index());
+    if (!quirks.clipping)
+    {
+        x_coord %= 128;
+        y_coord %= 64;
+    }
 
     auto* xo_display = static_cast<xochip_display*>(&display);
     xochip_display::Bitplane active_bitplane = xo_display->get_active_bitplane();
@@ -258,12 +260,21 @@ void xochip_instructions::OP_DXYN()
     core& core = owner.get_core();
     memory& memory = owner.get_memory();
     display& display = owner.get_display();
+    quirks& quirks = owner.get_quirks();
 
     // Wrap x and y position for a sprite
     uint8_t screen_width = display.get_screen_width();
     uint8_t screen_height = display.get_screen_height();
-    uint8_t x_coord = core.get_registry_value(get_registry_x_index()) % screen_width;
-    uint8_t y_coord = core.get_registry_value(get_registry_y_index()) % screen_height;
+
+
+    // Get sprite x and y coords
+    uint8_t x_coord = core.get_registry_value(get_registry_x_index());
+    uint8_t y_coord = core.get_registry_value(get_registry_y_index());
+    if (!quirks.clipping)
+    {
+        x_coord %= screen_width;
+        y_coord %= screen_height;
+    }
 
     core.set_registry_value(0xF, 0);
 
@@ -312,64 +323,6 @@ void xochip_instructions::OP_DXYN()
 
     if (nullified)
         core.V(0xF) = 1;
-}
-
-
-void xochip_instructions::OP_BNNN()
-{
-    core& core = owner.get_core();
-    core.set_pc(get_nnn_address() + core.V(0));
-}
-
-void xochip_instructions::OP_8XY6()
-{
-    uint8_t x = get_registry_x_index();
-    uint8_t y = get_registry_y_index();
-    core& core = owner.get_core();
-
-    core.V(x) = core.V(y);
-    uint8_t removed_bit = core.V(x) & 1;
-    core.V(x) = core.V(x) >> 1;
-
-    core.V(0xF) = removed_bit;
-}
-
-void xochip_instructions::OP_8XYE()
-{
-    core& core = owner.get_core();
-    uint8_t x = get_registry_x_index();
-    uint8_t y = get_registry_y_index();
-
-    core.V(x) = core.V(y);
-    uint8_t removed_bit = core.V(x) >> 7;
-    core.V(x) = core.V(x) << 1;
-
-    core.V(0xF) = removed_bit;
-}
-
-
-void xochip_instructions::OP_FX55()
-{
-    core& core = owner.get_core();
-    memory& memory = owner.get_memory();
-    for (int i = 0; i <= get_registry_x_index(); ++i)
-    {
-        memory.access_memory()[core.get_index_register() + i] = core.V(i);
-    }
-
-    core.set_index_register(core.get_index_register() + get_registry_x_index() + 1);
-}
-
-void xochip_instructions::OP_FX65()
-{
-    core& core = owner.get_core();
-    memory& memory = owner.get_memory();
-    for (int i = 0; i <= get_registry_x_index(); ++i)
-    {
-        core.V(i) = memory.access_memory()[core.get_index_register() + i];
-    }
-
-    core.set_index_register(core.get_index_register() + get_registry_x_index() + 1);
 }
 
 void xochip_instructions::OP_FX1E()
@@ -507,21 +460,4 @@ void xochip_instructions::OP_EXA1()
             }
         }
     }
-}
-
-void xochip_instructions::draw_sprite(uint8_t bytes_per_row, uint8_t width, uint8_t height)
-{
-    core& core = owner.get_core();
-    memory& memory = owner.get_memory();
-    display& display = owner.get_display();
-
-    auto* xo_display = static_cast<xochip_display*>(&display);
-    xochip_display::Bitplane active_bitplane = xo_display->get_active_bitplane();
-
-    uint16_t sprite_data = 0;
-    for (int i = 0; i < bytes_per_row; ++i)
-    {
-        //sprite_data |= memory.access_memory()[core.get_index_register() + i] << (i * 8);
-    }
-
 }

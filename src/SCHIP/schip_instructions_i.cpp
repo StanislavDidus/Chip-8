@@ -23,7 +23,7 @@ void schip_instructions_i::init_table()
     {
         return [this]
         {
-            if (get_n_value() == 0 && static_cast<schip_display_i*>(&owner.get_display())->is_high_resolution())
+            if (get_n_value() == 0 && static_cast<schip_display_i*>(&owner.get_display())->is_high_res())
                 OP_DXY0();
             else
                 OP_DXYN();
@@ -144,12 +144,20 @@ void schip_instructions_i::OP_DXYN()
     core& core = owner.get_core();
     memory& memory = owner.get_memory();
     display& display = owner.get_display();
+    quirks& quirks = owner.get_quirks();
 
-    // Wrap x and y position for a sprite
     uint8_t screen_width = display.get_screen_width();
     uint8_t screen_height = display.get_screen_height();
-    uint8_t x_coord = core.get_registry_value(get_registry_x_index()) % screen_width;
-    uint8_t y_coord = core.get_registry_value(get_registry_y_index()) % screen_height;
+
+    // Get sprite x and y coords
+    uint8_t x_coord = core.get_registry_value(get_registry_x_index());
+    uint8_t y_coord = core.get_registry_value(get_registry_y_index());
+    if (!quirks.clipping)
+    {
+        x_coord %= screen_width;
+        y_coord %= screen_height;
+    }
+
 
     core.set_registry_value(0xF, 0);
 
@@ -254,5 +262,5 @@ void schip_instructions_i::OP_FX85()
 
 void schip_instructions_i::OP_00FD()
 {
-    std::exit(0);
+    owner.stop_game();
 }

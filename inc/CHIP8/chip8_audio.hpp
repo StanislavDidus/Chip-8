@@ -1,5 +1,5 @@
 #pragma once
-#include "audio.hpp"
+#include "../Audio/audio.hpp"
 
 class chip8_audio : public audio
 {

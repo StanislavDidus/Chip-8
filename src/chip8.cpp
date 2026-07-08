@@ -2,32 +2,103 @@
 
 #include <fstream>
 #include <iostream>
+#include <algorithm>
 #include <cstring>
 
-chip8::chip8(window_renderer& renderer, uint32_t instructions_per_frame)
-    : renderer(renderer), instructions_per_frame(instructions_per_frame)
-{
+#include "imgui_impl_sdl3.h"
+#include "imgui_impl_sdlrenderer3.h"
+#include "imgui_internal.h"
 
+#include "CHIP8/chip8_audio.hpp"
+#include "CHIP8/chip8_display.hpp"
+#include "CHIP8/chip8_memory.hpp"
+
+#include "CHIP48/chip48_instructions.hpp"
+#include "CHIP48/chip48_quirks.hpp"
+#include "CHIP8/chip8_quirks.hpp"
+
+#include "SCHIP/schip_display.hpp"
+#include "SCHIP/schip_instructions.hpp"
+#include "SCHIP/schip_quirks.hpp"
+
+#include "XOCHIP/xochip_audio.hpp"
+#include "XOCHIP/xochip_display.hpp"
+#include "XOCHIP/xochip_instructions.hpp"
+#include "XOCHIP/xochip_memory.hpp"
+#include "XOCHIP/xochip_quirks.hpp"
+
+chip8::chip8(window_renderer& renderer)
+    : renderer(renderer)
+{
+    // Init ImGui file dialog
+
+    file_dialog.SetTitle("File Browser");
+    file_dialog.SetTypeFilters({".ch8"});
 }
 
-void chip8::setup_chip8
-    (
-    std::unique_ptr<display> display,
-    std::unique_ptr<instructions> instructions,
-    std::unique_ptr<memory> memory,
-    std::unique_ptr<audio> audio
-    )
+chip8::~chip8()
 {
-    m_display = std::move(display);
-    m_instructions = std::move(instructions);
-    m_memory = std::move(memory);
-    m_audio = std::move(audio);
+    if (texture) SDL_DestroyTexture(texture);
+    if (surface) SDL_DestroySurface(surface);
+}
+
+void chip8::setup_chip8(uint8_t version)
+{
+    if (version == 0)
+    {
+        m_display = std::make_unique<chip8_display>();
+        m_instructions = std::make_unique<chip48_instructions>(*this);
+        m_memory = std::make_unique<chip8_memory>();
+        m_audio = std::make_unique<chip8_audio>();
+        m_core = core{};
+    }
+    else if (version == 1)
+    {
+        m_display = std::make_unique<chip8_display>();
+        m_instructions = std::make_unique<chip48_instructions>(*this);
+        m_memory = std::make_unique<chip8_memory>();
+        m_audio = std::make_unique<chip8_audio>();
+        m_core = core{};
+    }
+    else if (version == 2)
+    {
+        m_display = std::make_unique<schip_display>();
+        m_instructions = std::make_unique<schip_instructions>(*this);
+        m_memory = std::make_unique<chip8_memory>();
+        m_audio = std::make_unique<chip8_audio>();
+        m_core = core{};
+    }
+    else if (version == 3)
+    {
+        m_display = std::make_unique<xochip_display>();
+        m_instructions = std::make_unique<xochip_instructions>(*this);
+        m_memory = std::make_unique<xochip_memory>();
+        m_audio = std::make_unique<xochip_audio>();
+        m_core = core{};
+    }
+    else
+    {
+        throw std::runtime_error{"Wrong Chip8 version."};
+    }
+
+    /*if (config.chip8_quirks == 0)
+        m_quirks = chip8_quirks;
+    else if (config.chip8_quirks == 1)
+        m_quirks = chip48_quirks;
+    else if (config.chip8_quirks == 2)
+        m_quirks = schip_quirks;
+    else if (config.chip8_quirks == 3)
+        m_quirks = xochip_quirks;
+    else
+        throw std::runtime_error{"Wrong Chip8 quirk."};*/
+
+    instructions_per_frame = static_cast<int32_t>(static_cast<float>(instructions_per_second) / 60.0f);
+
+    m_audio->set_volume(config.volume);
 
     init_keys();
     init_font();
     init_render_texture();
-
-    std::cout << "Initialized Chip8." << std::endl;
 }
 
 void chip8::load_rom(const std::filesystem::path& path_to_rom)
@@ -35,10 +106,13 @@ void chip8::load_rom(const std::filesystem::path& path_to_rom)
     // std::ios::ate makes the cursor move to the end of the file
     std::ifstream file{path_to_rom, std::ios::binary | std::ios::ate};
     if (!file)
-        std::cerr << "Could not open file for reading." << std::endl;
+       throw std::runtime_error{"Could not open file for reading."};
 
     // Get actual file size
     std::streamsize size = file.tellg();
+    std::streamsize max_size = m_memory->get_size() - STARTING_POINT;
+    if (size > max_size)
+        throw std::runtime_error{"Rom size exceeds the size of the available memory."};
 
     // Move the pointer back to the beginning
     file.seekg(0, std::ios::beg);
@@ -47,7 +121,7 @@ void chip8::load_rom(const std::filesystem::path& path_to_rom)
     file.read(reinterpret_cast<char*>(m_memory->access_memory() + STARTING_POINT), size);
 
     if (file.bad())
-        std::cerr << "Failed to read the file." << std::endl;
+        throw std::runtime_error{"Failed to read the file."};
 
     // Save the ROM's name without the extension
     rom_name = path_to_rom.stem().string();
@@ -126,11 +200,31 @@ void chip8::init_font()
 
 void chip8::init_render_texture()
 {
+    if (texture) SDL_DestroyTexture(texture);
+    if (surface) SDL_DestroySurface(surface);
+
     surface = SDL_CreateSurface(128,64, SDL_PIXELFORMAT_ARGB8888);
     if (!surface) std::cerr << "Could not create surface: " << SDL_GetError() << std::endl;
     texture = SDL_CreateTextureFromSurface(renderer.get_renderer(), surface);
     if (!texture) std::cerr << "Could not create texture: " << SDL_GetError() << std::endl;
     SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
+
+    std::cout << "Initialized texture target." << std::endl;
+}
+
+void chip8::setup_from_config()
+{
+    try
+    {
+        setup_chip8(config.chip8_version);
+        load_rom(config.rom_path);
+
+        status = chip8_status::PLAYING;
+    }
+    catch (std::exception& e)
+    {
+        m_logger.log(std::format("Error occured during Chip8 initialization: {}", e.what()));
+    }
 }
 
 uint16_t chip8::fetch() const
@@ -153,69 +247,452 @@ void chip8::key_released(SDL_Scancode scancode)
         keys.set(keymap[scancode], false);
 }
 
-void chip8::update()
+void chip8::pause_game()
 {
-    for (int i = 0; i < instructions_per_frame; ++i)
+    status = chip8_status::PAUSED;
+}
+
+void chip8::resume_game()
+{
+    status = chip8_status::PLAYING;
+}
+
+void chip8::stop_game()
+{
+    game_timer = 0.0f;
+    status = chip8_status::MENU;
+}
+
+void chip8::update(float delta_time)
+{
+    try
     {
-        // Fetch
-        uint16_t opcode = fetch();
+        if (status == chip8_status::PLAYING)
+        {
+            game_timer += delta_time;
 
-        // Increase PC
-        m_core.skip_next();
+            for (int i = 0; i < instructions_per_frame; ++i)
+            {
+                // Fetch
+                uint16_t opcode = fetch();
 
-        // Decode
-        instruction inst = m_instructions->decode(opcode);
+                // Increase PC
+                m_core.skip_next();
 
-        // Execute
-        std::cout << "Executing instruction: " << std::hex << opcode << " at: " << std::hex << m_core.get_pc() << std::endl;
-        inst();
+                // Decode
+                instruction inst = m_instructions->decode(opcode);
+
+                // Execute
+                std::cout << "Executing instruction: " << std::hex << opcode << " at: " << std::hex << m_core.get_pc() << std::endl;
+                inst();
+
+                // Stop update look after 00DFD instruction
+                if (status == chip8_status::MENU)
+                    break;
+            }
+
+            // Update timers
+            if (m_core.get_delay_timer_value() > 0)
+                m_core.decrease_delay_timer();
+            if (m_core.get_sound_timer_value() > 0)
+            {
+                m_audio->play_sound();
+                m_core.decrease_sound_timer();
+            }
+        }
     }
-
-    // Update timers
-    if (m_core.get_delay_timer_value() > 0)
-        m_core.decrease_delay_timer();
-    if (m_core.get_sound_timer_value() > 0)
+    catch (std::exception& e)
     {
-        m_audio->play_sound();
-        m_core.decrease_sound_timer();
+        m_logger.log(std::format("Error encountered when running: {}", e.what()));
+        m_logger.log(std::format("Stopping the game", e.what()));
+        stop_game();
     }
+}
+
+uint32_t get_color_value(float color[3])
+{
+    uint32_t a = 0xFF;
+    uint32_t r = static_cast<uint32_t>(color[0] * 255.0f);
+    uint32_t g = static_cast<uint32_t>(color[1] * 255.0f);
+    uint32_t b = static_cast<uint32_t>(color[2] * 255.0f);
+    return a << 24 | r << 16 | g << 8 | b;
 }
 
 void chip8::render(window_renderer& renderer)
 {
     SDL_Renderer* sdl_renderer = renderer.get_renderer();
 
-    uint8_t screen_width = m_display->get_screen_width();
-    uint8_t screen_height = m_display->get_screen_height();
-    std::vector<uint32_t> pixels(screen_width * screen_height);
-
-    for (int y = 0; y < screen_height; ++y)
+    if (status == chip8_status::PLAYING)
     {
-        for (int x = 0; x < screen_width; ++x)
+        // Create a texture from a screen buffer
+        uint8_t screen_width = m_display->get_screen_width();
+        uint8_t screen_height = m_display->get_screen_height();
+        std::vector<uint32_t> pixels(screen_width * screen_height);
+
+        for (int y = 0; y < screen_height; ++y)
         {
-            uint8_t pixel_value = m_display->get_pixel_value(x, y);
-            uint32_t color = 0;
+            for (int x = 0; x < screen_width; ++x)
+            {
+                uint8_t pixel_value = m_display->get_pixel_value(x, y);
+                uint32_t color = 0;
 
-            if (pixel_value == 0) color = color_0;
-            if (pixel_value == 1) color = color_1;
-            if (pixel_value == 2) color = color_2;
-            if (pixel_value == 3) color = color_3;
+                if (pixel_value == 0) color = get_color_value(config.color_0);
+                if (pixel_value == 1) color = get_color_value(config.color_1);
+                if (pixel_value == 2) color = get_color_value(config.color_2);
+                if (pixel_value == 3) color = get_color_value(config.color_3);
 
-            pixels[x + y * screen_width] = color;
+                pixels[x + y * screen_width] = color;
+            }
+        }
+
+        SDL_FRect src {0.0f, 0.0f, static_cast<float>(m_display->get_screen_width()), static_cast<float>(m_display->get_screen_height())};
+        SDL_Rect src_i {0, 0, static_cast<int>(m_display->get_screen_width()), static_cast<int>(m_display->get_screen_height())};
+
+        SDL_UpdateTexture(texture, &src_i, pixels.data(), screen_width * sizeof(uint32_t));
+    }
+
+    // Start new ImGui frame
+    ImGui_ImplSDLRenderer3_NewFrame();
+    ImGui_ImplSDL3_NewFrame();
+    ImGui::NewFrame();
+
+    // Draw ImGui stuff here
+    ImGui::DockSpaceOverViewport();
+    ImGui::ShowDemoWindow();
+    render_launch_window();
+    render_log_window();
+    render_viewport_window();
+    render_additional_windows();
+
+    // Render ImGui
+    ImGui::Render();
+
+    SDL_RenderClear(sdl_renderer);
+
+    ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer.get_renderer());
+
+    SDL_RenderPresent(sdl_renderer);
+
+    // Multi viewports
+    if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    {
+        ImGui::UpdatePlatformWindows();
+        ImGui::RenderPlatformWindowsDefault();
+    }
+}
+
+void chip8::render_launch_window()
+{
+    ImGui::Begin("Launch");
+
+    if (ImGui::BeginMenu("Settings"))
+    {
+        ImGui::MenuItem("Color settings", nullptr, &config.show_color_settings);
+        ImGui::MenuItem("Audio settings", nullptr, &config.show_audio_settings);
+
+        ImGui::EndMenu();
+    }
+
+    static char path_buffer[128] {};
+    ImVec2 avail = ImGui::GetContentRegionAvail();
+
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + avail.x * 0.5f - ImGui::CalcTextSize("Welcome to my Chip8 emulator!").x * 0.5f);
+    ImGui::Text("Welcome to my Chip8 emulator!");
+
+    ImGui::TextWrapped("- This is a revolutionary emulator made for the purpose of playing and creating retro games.\n"
+                "- This emulator can run any Chip8 game as well as games made for other versions of Chip8 (Chip48, Super-Chip, XO-Chip).\n"
+                "- Below you need to specify the path to the ROM you want to run and which version of Chip8 to use. "
+                "For more settings go to the \"settings\" tab.\n"
+                "If you never wish to see this text again uncheck the checkbox in the \"settings\" .\n");
+
+    ImGui::Spacing();
+    ImGui::Separator();
+
+    ImGui::Text("Path to ROM");
+
+    ImGui::InputText("##inputtext", path_buffer, sizeof(path_buffer));
+
+    ImGui::SameLine();
+
+    if (ImGui::Button("Open File Browser"))
+    {
+        file_dialog.Open();
+    }
+
+    ImGui::Spacing();
+
+    ImGui::Text("Chip8 version");
+
+    // Choose Chip8 version
+    static const char* versions[] {"Chip8", "Chip48", "Super-Chip", "XO-Chip"};
+    static int selected_version = 0;
+
+    static const char* quirks[] {"Chip8", "Chip48", "Super-Chip", "XO-Chip"};
+    static int selected_quirks = 0;
+
+    if (ImGui::Combo("##checkbox", &selected_version, versions, IM_ARRAYSIZE(versions)))
+    {
+        selected_quirks = selected_version;
+
+        if (selected_quirks == 0)
+            m_quirks = chip8_quirks;
+        if (selected_quirks == 1)
+            m_quirks = chip48_quirks;
+        if (selected_quirks == 2)
+            m_quirks = schip_quirks;
+        if (selected_quirks == 3)
+            m_quirks = xochip_quirks;
+    }
+
+    ImGui::Spacing();
+
+    ImGui::Text("Instruction execution speed");
+
+    // Choose Chip8 instruction executing speed
+    if (ImGui::InputInt("##inputint", &instructions_per_second))
+    {
+        instructions_per_second = std::clamp(instructions_per_second, 0, std::numeric_limits<int32_t>::max());
+    }
+    if (ImGui::Button("Chip8")) {instructions_per_second = CHIP8_INSTRUCTIONS_PER_SECOND; instructions_per_frame = CHIP8_INSTRUCTION_PER_FRAME; }
+    ImGui::SameLine();
+    if (ImGui::Button("Super-Chip")) {instructions_per_second = SCHIP_INSTRUCTIONS_PER_SECOND; instructions_per_frame = SCHIP_INSTRUCTION_PER_FRAME; }
+    ImGui::SameLine();
+    if (ImGui::Button("XO-Chip")) {instructions_per_second = XOCHIP_INSTRUCTIONS_PER_SECOND; instructions_per_frame = XOCHIP_INSTRUCTION_PER_FRAME; }
+
+    ImGui::Spacing();
+
+    // Quirks
+    ImGui::Text("Quirks");
+
+    if (ImGui::Combo("##checkbox_quirks", &selected_quirks, quirks, IM_ARRAYSIZE(quirks)))
+    {
+        if (selected_quirks == 0)
+            m_quirks = chip8_quirks;
+        if (selected_quirks == 1)
+            m_quirks = chip48_quirks;
+        if (selected_quirks == 2)
+            m_quirks = schip_quirks;
+        if (selected_quirks == 3)
+            m_quirks = xochip_quirks;
+    }
+
+    ImGui::SameLine();
+
+    if (ImGui::Button("Configure"))
+    {
+        config.show_quirks_settings = true;
+    }
+
+    ImGui::Spacing();
+
+    ImGui::Text("Launch options");
+
+    // Start game
+    if (ImGui::Button("Start"))
+    {
+        config.chip8_version = selected_version;
+        config.chip8_quirks = selected_quirks;
+        config.rom_path = path_buffer;
+
+        setup_from_config();
+    }
+
+    ImGui::SameLine();
+
+    // Debug mode Checkbox
+    /*if (ImGui::Checkbox("Debugger", &config.is_debug_mode))
+    {
+
+    }*/
+
+    if (status == chip8_status::PLAYING || status == chip8_status::PAUSED)
+    {
+       ImGui::Spacing();
+
+        ImGui::Text("Playtime %.1f", game_timer);
+
+        if (status == chip8_status::PLAYING)
+        {
+            if (ImGui::Button("Pause"))
+            {
+                pause_game();
+            }
+        }
+        else if (status == chip8_status::PAUSED)
+        {
+            if (ImGui::Button("Resume"))
+            {
+                resume_game();
+            }
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("Stop"))
+        {
+            stop_game();
         }
     }
 
-    SDL_FRect src {0.0f, 0.0f, static_cast<float>(m_display->get_screen_width()), static_cast<float>(m_display->get_screen_height())};
-    SDL_Rect src_i {0, 0, static_cast<int>(m_display->get_screen_width()), static_cast<int>(m_display->get_screen_height())};
+    ImGui::Spacing();
 
-    SDL_UpdateTexture(texture, &src_i, pixels.data(), screen_width * sizeof(uint32_t));
+    ImGui::End();
 
-    //SDL_SetRenderDrawColor(sdl_renderer, 0,0,0,255);
-    SDL_RenderClear(sdl_renderer);
+    file_dialog.Display();
 
-    //SDL_SetRenderDrawColor(sdl_renderer, 255,255,255,255);
-    SDL_RenderTexture(sdl_renderer, texture, &src, nullptr);
-
-    SDL_RenderPresent(sdl_renderer);
+    if (file_dialog.HasSelected())
+    {
+        //buffer = file_dialog.GetSelected();
+        //strncpy_s(const_cast<char*>(buffer.string().c_str()), sizeof(buffer) - 1, path_buffer, 0);
+        //std::cout << "File selected: " << buffer.c_str() << std::endl;
+        std::string selected_path = std::filesystem::relative(file_dialog.GetSelected()).string();
+        //strncpy_s(path_buffer, sizeof(path_buffer), selected_path.c_str(), MAX);
+        std::copy_n(selected_path.c_str(), std::min(strlen(selected_path.c_str()), sizeof(path_buffer) - 1), path_buffer);
+        file_dialog.ClearSelected();
+    }
 }
 
+void chip8::render_log_window()
+{
+
+    ImGui::Begin("Log");
+
+    ImGui::Text("Log information will be displayed here");
+    if (ImGui::Button("Clear"))
+    {
+        m_logger.clear();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Copy"))
+    {
+        m_logger.copy();
+    }
+    ImGui::Spacing();
+
+    ImGui::BeginChild("Child", ImGui::GetContentRegionAvail());
+
+    const auto& logs = m_logger.get_logs();
+    for (const auto& log : logs)
+    {
+        ImGui::TextWrapped(log.c_str());
+    }
+
+    ImGui::EndChild();
+
+    ImGui::End();
+}
+
+void chip8::render_viewport_window()
+{
+    ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+
+    if (texture && (status == chip8_status::PLAYING || status == chip8_status::PAUSED))
+    {
+        ImVec2 avail_size = ImGui::GetContentRegionAvail();
+
+        float scale_x = avail_size.x / texture->w;
+        float scale_y = avail_size.y / texture->h;
+
+        float final_scale = scale_x < scale_y ? scale_x : scale_y;
+
+        ImVec2 viewport_size;
+        viewport_size.x = texture->w * final_scale;
+        viewport_size.y = texture->h * final_scale;
+
+        float start_x = avail_size.x * 0.5f - viewport_size.x * 0.5f;
+        float start_y = avail_size.y * 0.5f - viewport_size.y * 0.5f;
+
+        if (start_x < 0.0f)
+            start_x = 0.0f;
+        if (start_y < 0.0f)
+            start_y = 0.0f;
+
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + start_x);
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + start_y);
+
+        ImVec2 uv  = ImVec2{1.0f, 1.0f};
+
+        if (!m_display->is_high_res())
+        {
+            uv.x = 0.5f;
+            uv.y = 0.5f;
+        }
+
+        ImGui::Image(static_cast<ImTextureID>(reinterpret_cast<intptr_t>(texture)), viewport_size, ImVec2{0.0f, 0.0f}, uv);
+    }
+
+    ImGui::End();
+}
+
+void chip8::render_additional_windows()
+{
+    if (config.show_color_settings)
+    {
+        if (ImGui::Begin("Color settings", &config.show_color_settings))
+        {
+            ImGui::TextWrapped("This is a color settings menu");
+            ImGui::TextWrapped("Here you can change the color palette used for rendering.");
+            ImGui::Separator();
+
+            ImGui::ColorEdit3("(0) Background color", config.color_0);
+            ImGui::ColorEdit3("(1) Fill color", config.color_1);
+            ImGui::ColorEdit3("(2) Second Bitplane color", config.color_2);
+            ImGui::ColorEdit3("(3) Mixed Bitplane color", config.color_3);
+
+            ImGui::Spacing();
+            ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "Colors 2 and 3 are only used when playing XO-Chip games on X0-Chip emulator.");
+        }
+        ImGui::End();
+    }
+
+    if (config.show_quirks_settings)
+    {
+        ImGui::Begin("Quirks settings", &config.show_quirks_settings);
+
+        ImGui::TextWrapped("This is a quirks settings menu.");
+        ImGui::TextWrapped("Here you can turn on/off some quirks.");
+        ImGui::TextWrapped("Quirks are automatically set to match the Chip8 version you chose but afterwards you can adjust them yourself.");
+        ImGui::Separator();
+
+        if (ImGui::BeginTable("split", 2))
+        {
+            ImGui::TableNextColumn();
+            ImGui::Checkbox("VF Reset", &m_quirks.vf_reset);
+
+            ImGui::TableNextColumn();
+            ImGui::Checkbox("Memory", &m_quirks.memory);
+
+            ImGui::TableNextColumn();
+            ImGui::Checkbox("Display wait", &m_quirks.display_wait);
+
+            ImGui::TableNextColumn();
+            ImGui::Checkbox("Clipping", &m_quirks.clipping);
+
+            ImGui::TableNextColumn();
+            ImGui::Checkbox("Shifting", &m_quirks.shifting);
+
+            ImGui::TableNextColumn();
+            ImGui::Checkbox("Jumping", &m_quirks.jumping);
+
+            ImGui::EndTable();
+        }
+        ImGui::SameLine();
+        ImGui::End();
+    }
+
+    if (config.show_audio_settings)
+    {
+        if (ImGui::Begin("Audio settings", &config.show_audio_settings))
+        {
+            ImGui::TextWrapped("This is an audio settings menu.");
+            ImGui::TextWrapped("You an adjust the volume and other settings here.");
+            ImGui::Separator();
+
+            if (ImGui::SliderFloat("Volume", &config.volume, 0.0f, 1.0f, "%.2f"))
+            {
+                if (m_audio) m_audio->set_volume(config.volume);
+            }
+        }
+        ImGui::End();
+    }
+}

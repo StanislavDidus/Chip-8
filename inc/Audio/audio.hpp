@@ -24,10 +24,10 @@ public:
 
     // Setters
     /// Accepts values ranging from 0 to 1.
-    void set_amplitude(float value);
+    void set_volume(float value);
 protected:
     SDL_AudioStream* audio_stream = nullptr;
     SDL_AudioDeviceID device = 0;
 
-    float amplitude = 0.1f;
+    float volume = 1.0f;
 };

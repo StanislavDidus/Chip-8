@@ -11,7 +11,7 @@ void xochip_audio::play_sound()
         {
             bool is_bit_on = (audio_pattern_buffer[i] >> bit) & 1;
 
-            buffer[sample_index++] = is_bit_on ? amplitude : -amplitude;
+            buffer[sample_index++] = is_bit_on ? volume : -volume;
         }
     }
 

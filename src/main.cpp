@@ -6,11 +6,14 @@
 
 #include "chip8.hpp"
 
+#include "imgui.h"
+#include "imgui_impl_sdl3.h"
+#include "imgui_impl_sdlrenderer3.h"
+
 #include "CHIP48/chip48_instructions.hpp"
 #include "CHIP8/chip8_audio.hpp"
 
 #include "CHIP8/chip8_display.hpp"
-#include "CHIP8/chip8_instructions.hpp"
 #include "CHIP8/chip8_memory.hpp"
 
 #include "SCHIP/schip_display.hpp"
@@ -26,7 +29,7 @@ struct Context
     char* path_to_rom = nullptr;
     int chip8_version = 0;
     int chip8_hz = 0;
-    window_renderer window_renderer;
+    window_renderer window_renderer_;
     std::unique_ptr<chip8> chip;
 };
 
@@ -35,8 +38,44 @@ int init(Context& ctx)
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_AUDIO))
         return -1;
 
-    ctx.window_renderer = std::move(window_renderer{"CHIP-8", 960, 540 ,SDL_WINDOW_RESIZABLE});
 
+    ctx.window_renderer_ = std::move(window_renderer{"Chip8 Emulator Window", 960, 540 ,SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY});
+
+    // Setup icon
+    SDL_Surface* icon_surface = SDL_LoadPNG("assets/sprites/icon.png");
+    SDL_SetWindowIcon(ctx.window_renderer_.get_window(), icon_surface);
+    SDL_DestroySurface(icon_surface);
+
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // Enable Docking
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;       // Enable multi viewports
+    ImGui_ImplSDL3_InitForSDLRenderer(ctx.window_renderer_.get_window(), ctx.window_renderer_.get_renderer());
+    ImGui_ImplSDLRenderer3_Init(ctx.window_renderer_.get_renderer());
+
+    ImGuiStyle style = ImGui::GetStyle();
+    /*
+    style.FontSizeBase = 50.0f;
+    style.FontScaleDpi = 4.0f;
+    style.ScaleAllSizes(15.0f);
+    */
+
+    ImFont* main_font = io.Fonts->AddFontFromFileTTF("assets/fonts/OpenSans.ttf");
+    ImGui::PushFont(main_font, 30.0f);
+
+    /*
+    int display_w, display_h;
+    SDL_GetWindowSize(ctx.window_renderer.get_window(), &display_w, &display_h);
+    SDL_Rect rect{0,0, display_w, display_h};
+    SDL_SetRenderViewport(ctx.window_renderer.get_renderer(), &rect);
+    */
+
+    ctx.chip = std::make_unique<chip8>(ctx.window_renderer_);
+
+    /*
     if (ctx.chip8_hz == 1)
         ctx.chip = std::make_unique<chip8>(ctx.window_renderer, CHIP8_INSTRUCTION_PER_FRAME);
     else if (ctx.chip8_hz == 2)
@@ -48,12 +87,13 @@ int init(Context& ctx)
     {
         throw std::runtime_error("Wrong CHIP8 hz speed.");
     }
+    */
 
-    if (ctx.chip8_version == 1)
+    /*if (ctx.chip8_version == 1)
     {
         ctx.chip->setup_chip8(
             std::make_unique<chip8_display>(),
-            std::make_unique<chip8_instructions>(*ctx.chip),
+            std::make_unique<chip48_instructions>(*ctx.chip),
             std::make_unique<chip8_memory>(),
             std::make_unique<chip8_audio>());
     }
@@ -86,7 +126,7 @@ int init(Context& ctx)
         throw std::runtime_error("Wrong CHIP8 version.");
     }
 
-    ctx.chip->load_rom(ctx.path_to_rom);
+    ctx.chip->load_rom(ctx.path_to_rom);*/
 
     return 0;
 }
@@ -96,9 +136,11 @@ int update(Context& ctx)
     SDL_Event event;
     bool running = true;
 
-    SDL_Renderer* renderer = ctx.window_renderer.get_renderer();
+    SDL_Renderer* renderer = ctx.window_renderer_.get_renderer();
     if (!renderer)
         return -1;
+
+    double delta_time = 0.0;
 
     while (running)
     {
@@ -106,6 +148,8 @@ int update(Context& ctx)
 
         while (SDL_PollEvent(&event))
         {
+            ImGui_ImplSDL3_ProcessEvent(&event);
+
             switch (event.type)
             {
             case SDL_EVENT_QUIT:
@@ -120,12 +164,13 @@ int update(Context& ctx)
             }
         }
 
-        ctx.chip->update();
-        ctx.chip->render(ctx.window_renderer);
+        ctx.chip->update(16.666 / 1000);
+
+        ctx.chip->render(ctx.window_renderer_);
 
         // Limit FPS to 60
         uint64_t end = SDL_GetTicks();
-        double delta_time = static_cast<double>(end - start);
+        delta_time = static_cast<double>(end - start);
         if (delta_time < 16.666)
             SDL_Delay(16.666 - delta_time);
 
@@ -135,14 +180,14 @@ int update(Context& ctx)
 
 int shutdown(Context& ctx)
 {
-    ctx.window_renderer.close();
+    ctx.window_renderer_.close();
 
     return 0;
 }
 
 
 #ifndef NDEBUG
-//#define TEST
+#define TEST
 #endif
 
 int main(int argc, char* argv[])
@@ -160,7 +205,7 @@ int main(int argc, char* argv[])
     ///
     // CHANGE THIS PATH TO THE ROM FILE YOU WANT TO RUN
     ///
-    char arg1[] = "rom/5-quirks.ch8";
+    char arg1[] = "rom/sweetcopter.ch8";
 
     *argv = new char[2];
     argv[0] = arg0;
@@ -169,7 +214,7 @@ int main(int argc, char* argv[])
 
     Context context;
 
-    std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<" << std::endl;
+    /*std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<" << std::endl;
     std::cout << "Choose the version of CHIP8 you want to use:" << std::endl;
     std::cout << "1: Chip8 (Standard version that supports older games)" << std::endl;
     std::cout << "2: Chip48 (Modernized version of Chip8)" << std::endl;
@@ -187,7 +232,7 @@ int main(int argc, char* argv[])
     std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<" << std::endl;
     std::cin >> context.chip8_hz;
 
-    context.path_to_rom = argv[1];
+    context.path_to_rom = argv[1];*/
 
     init(context);
 
