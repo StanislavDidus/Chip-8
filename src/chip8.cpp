@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <algorithm>
 #include <cstring>
 
 #include "imgui_impl_sdl3.h"
@@ -545,7 +546,8 @@ void chip8::render_launch_window()
         //strncpy_s(const_cast<char*>(buffer.string().c_str()), sizeof(buffer) - 1, path_buffer, 0);
         //std::cout << "File selected: " << buffer.c_str() << std::endl;
         std::string selected_path = std::filesystem::relative(file_dialog.GetSelected()).string();
-        strncpy_s(path_buffer, sizeof(path_buffer), selected_path.c_str(), _TRUNCATE);
+        //strncpy_s(path_buffer, sizeof(path_buffer), selected_path.c_str(), MAX);
+        std::copy_n(selected_path.c_str(), std::min(strlen(selected_path.c_str()), sizeof(path_buffer) - 1), path_buffer);
         file_dialog.ClearSelected();
     }
 }
