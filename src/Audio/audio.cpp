@@ -1,4 +1,4 @@
-#include "audio.hpp"
+#include "../../inc/Audio/audio.hpp"
 
 #include <algorithm>
 
@@ -22,7 +22,8 @@ audio::~audio()
     SDL_CloseAudioDevice(device);
 }
 
-void audio::set_amplitude(float value)
+void audio::set_volume(float value)
 {
-    amplitude = std::clamp(value, 0.0f, 1.0f);
+    float value_clamped = std::clamp(value, 0.0f, 1.0f);
+    volume = value_clamped * 0.2f;
 }

@@ -1,5 +1,5 @@
 #pragma once
-#include "audio.hpp"
+#include "../Audio/audio.hpp"
 
 class xochip_audio : public audio
 {

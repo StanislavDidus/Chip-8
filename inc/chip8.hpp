@@ -11,13 +11,15 @@
 #include "instructions.hpp"
 #include "memory.hpp"
 
-#include "audio.hpp"
+#include "Audio/audio.hpp"
 #include "enums.hpp"
 #include "SDL/window_renderer.hpp"
 
 #include "imgui.h"
 #include "imfilebrowser.h"
 #include "logger.hpp"
+#include "quirks.h"
+#include "CHIP8/chip8_quirks.hpp"
 // Variants
 // CHIP8-Classic, CHIP8-48, SUPER-CHIP, XO-CHIP
 
@@ -27,7 +29,7 @@ public:
     chip8(window_renderer& renderer);
     ~chip8();
 
-    void update();
+    void update(float delta_time);
     void render(window_renderer& renderer);
 
     void key_pressed(SDL_Scancode scancode);
@@ -43,6 +45,7 @@ public:
     memory& get_memory() { return *m_memory; }
     core& get_core() { return m_core; }
     audio& get_audio() { return *m_audio; }
+    quirks& get_quirks() { return m_quirks; }
     const std::string& get_rom_name() const { return rom_name; }
 
     [[nodiscard]] bool is_key_pressed(uint8_t key) { return keys[key]; }
@@ -68,6 +71,7 @@ private:
     std::unique_ptr<memory> m_memory;
     std::unique_ptr<audio> m_audio;
     core m_core {};
+    quirks m_quirks = chip8_quirks;
 
     // Image
     SDL_Surface* surface = nullptr;

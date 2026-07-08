@@ -15,19 +15,22 @@ constexpr int XOCHIP_INSTRUCTION_PER_FRAME = static_cast<int>(static_cast<float>
 
 constexpr const char* GAMESAVES_LOCATION = "gamesaves/";
 
-constexpr uint32_t color_0 = 0xFF000000;
-constexpr uint32_t color_1 = 0xFFFF00FF;
-constexpr uint32_t color_2 = 0xFF00FFFF;
-constexpr uint32_t color_3 = 0xFFFFFFFF;
-
 struct chip8_config
 {
     uint8_t chip8_version = 0;
+    uint8_t chip8_quirks = 0;
     std::string rom_path {};
-    bool show_color_settings = false;
 
-    float color_0[4];
-    float color_1[4];
-    float color_2[4];
-    float color_3[4];
+    bool show_color_settings = false;
+    bool show_quirks_settings = false;
+    bool show_audio_settings = false;
+
+    bool is_debug_mode = false;
+
+    float volume = 0.5f;
+
+    float color_0[3] = {0.0f, 0.0f, 0.0f};
+    float color_1[3] = {1.0f, 1.0f, 1.0f};
+    float color_2[3] = {0.33f, 0.33f, 0.33f};
+    float color_3[3] = {0.66f, 0.66f, 0.66f};
 };

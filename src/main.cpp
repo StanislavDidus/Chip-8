@@ -14,7 +14,6 @@
 #include "CHIP8/chip8_audio.hpp"
 
 #include "CHIP8/chip8_display.hpp"
-#include "CHIP8/chip8_instructions.hpp"
 #include "CHIP8/chip8_memory.hpp"
 
 #include "SCHIP/schip_display.hpp"
@@ -94,7 +93,7 @@ int init(Context& ctx)
     {
         ctx.chip->setup_chip8(
             std::make_unique<chip8_display>(),
-            std::make_unique<chip8_instructions>(*ctx.chip),
+            std::make_unique<chip48_instructions>(*ctx.chip),
             std::make_unique<chip8_memory>(),
             std::make_unique<chip8_audio>());
     }
@@ -141,6 +140,8 @@ int update(Context& ctx)
     if (!renderer)
         return -1;
 
+    double delta_time = 0.0;
+
     while (running)
     {
         uint64_t start = SDL_GetTicks();
@@ -163,13 +164,13 @@ int update(Context& ctx)
             }
         }
 
-        ctx.chip->update();
+        ctx.chip->update(16.666 / 1000);
 
         ctx.chip->render(ctx.window_renderer_);
 
         // Limit FPS to 60
         uint64_t end = SDL_GetTicks();
-        double delta_time = static_cast<double>(end - start);
+        delta_time = static_cast<double>(end - start);
         if (delta_time < 16.666)
             SDL_Delay(16.666 - delta_time);
 

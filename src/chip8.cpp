@@ -10,18 +10,21 @@
 
 #include "CHIP8/chip8_audio.hpp"
 #include "CHIP8/chip8_display.hpp"
-#include "CHIP8/chip8_instructions.hpp"
 #include "CHIP8/chip8_memory.hpp"
 
 #include "CHIP48/chip48_instructions.hpp"
+#include "CHIP48/chip48_quirks.hpp"
+#include "CHIP8/chip8_quirks.hpp"
 
 #include "SCHIP/schip_display.hpp"
 #include "SCHIP/schip_instructions.hpp"
+#include "SCHIP/schip_quirks.hpp"
 
 #include "XOCHIP/xochip_audio.hpp"
 #include "XOCHIP/xochip_display.hpp"
 #include "XOCHIP/xochip_instructions.hpp"
 #include "XOCHIP/xochip_memory.hpp"
+#include "XOCHIP/xochip_quirks.hpp"
 
 chip8::chip8(window_renderer& renderer)
     : renderer(renderer)
@@ -43,7 +46,7 @@ void chip8::setup_chip8(uint8_t version)
     if (version == 0)
     {
         m_display = std::make_unique<chip8_display>();
-        m_instructions = std::make_unique<chip8_instructions>(*this);
+        m_instructions = std::make_unique<chip48_instructions>(*this);
         m_memory = std::make_unique<chip8_memory>();
         m_audio = std::make_unique<chip8_audio>();
         m_core = core{};
@@ -76,6 +79,21 @@ void chip8::setup_chip8(uint8_t version)
     {
         throw std::runtime_error{"Wrong Chip8 version."};
     }
+
+    /*if (config.chip8_quirks == 0)
+        m_quirks = chip8_quirks;
+    else if (config.chip8_quirks == 1)
+        m_quirks = chip48_quirks;
+    else if (config.chip8_quirks == 2)
+        m_quirks = schip_quirks;
+    else if (config.chip8_quirks == 3)
+        m_quirks = xochip_quirks;
+    else
+        throw std::runtime_error{"Wrong Chip8 quirk."};*/
+
+    instructions_per_frame = static_cast<int32_t>(static_cast<float>(instructions_per_second) / 60.0f);
+
+    m_audio->set_volume(config.volume);
 
     init_keys();
     init_font();
@@ -240,15 +258,18 @@ void chip8::resume_game()
 
 void chip8::stop_game()
 {
+    game_timer = 0.0f;
     status = chip8_status::MENU;
 }
 
-void chip8::update()
+void chip8::update(float delta_time)
 {
     try
     {
         if (status == chip8_status::PLAYING)
         {
+            game_timer += delta_time;
+
             for (int i = 0; i < instructions_per_frame; ++i)
             {
                 // Fetch
@@ -287,6 +308,15 @@ void chip8::update()
     }
 }
 
+uint32_t get_color_value(float color[3])
+{
+    uint32_t a = 0xFF;
+    uint32_t r = static_cast<uint32_t>(color[0] * 255.0f);
+    uint32_t g = static_cast<uint32_t>(color[1] * 255.0f);
+    uint32_t b = static_cast<uint32_t>(color[2] * 255.0f);
+    return a << 24 | r << 16 | g << 8 | b;
+}
+
 void chip8::render(window_renderer& renderer)
 {
     SDL_Renderer* sdl_renderer = renderer.get_renderer();
@@ -305,10 +335,10 @@ void chip8::render(window_renderer& renderer)
                 uint8_t pixel_value = m_display->get_pixel_value(x, y);
                 uint32_t color = 0;
 
-                if (pixel_value == 0) color = color_0;
-                if (pixel_value == 1) color = color_1;
-                if (pixel_value == 2) color = color_2;
-                if (pixel_value == 3) color = color_3;
+                if (pixel_value == 0) color = get_color_value(config.color_0);
+                if (pixel_value == 1) color = get_color_value(config.color_1);
+                if (pixel_value == 2) color = get_color_value(config.color_2);
+                if (pixel_value == 3) color = get_color_value(config.color_3);
 
                 pixels[x + y * screen_width] = color;
             }
@@ -357,6 +387,8 @@ void chip8::render_launch_window()
     if (ImGui::BeginMenu("Settings"))
     {
         ImGui::MenuItem("Color settings", nullptr, &config.show_color_settings);
+        ImGui::MenuItem("Audio settings", nullptr, &config.show_audio_settings);
+
         ImGui::EndMenu();
     }
 
@@ -393,10 +425,22 @@ void chip8::render_launch_window()
     // Choose Chip8 version
     static const char* versions[] {"Chip8", "Chip48", "Super-Chip", "XO-Chip"};
     static int selected_version = 0;
-    bool check = ImGui::Combo("##checkbox", &selected_version, versions, IM_ARRAYSIZE(versions));
-    if (check)
-    {
 
+    static const char* quirks[] {"Chip8", "Chip48", "Super-Chip", "XO-Chip"};
+    static int selected_quirks = 0;
+
+    if (ImGui::Combo("##checkbox", &selected_version, versions, IM_ARRAYSIZE(versions)))
+    {
+        selected_quirks = selected_version;
+
+        if (selected_quirks == 0)
+            m_quirks = chip8_quirks;
+        if (selected_quirks == 1)
+            m_quirks = chip48_quirks;
+        if (selected_quirks == 2)
+            m_quirks = schip_quirks;
+        if (selected_quirks == 3)
+            m_quirks = xochip_quirks;
     }
 
     ImGui::Spacing();
@@ -404,9 +448,9 @@ void chip8::render_launch_window()
     ImGui::Text("Instruction execution speed");
 
     // Choose Chip8 instruction executing speed
-    if (ImGui::SliderInt("##slider", &instructions_per_second, 0, 10'000))
+    if (ImGui::InputInt("##inputint", &instructions_per_second))
     {
-        instructions_per_frame = static_cast<int32_t>(static_cast<float>(instructions_per_second) / 60.0f);
+        instructions_per_second = std::clamp(instructions_per_second, 0, std::numeric_limits<int32_t>::max());
     }
     if (ImGui::Button("Chip8")) {instructions_per_second = CHIP8_INSTRUCTIONS_PER_SECOND; instructions_per_frame = CHIP8_INSTRUCTION_PER_FRAME; }
     ImGui::SameLine();
@@ -416,12 +460,37 @@ void chip8::render_launch_window()
 
     ImGui::Spacing();
 
+    // Quirks
+    ImGui::Text("Quirks");
+
+    if (ImGui::Combo("##checkbox_quirks", &selected_quirks, quirks, IM_ARRAYSIZE(quirks)))
+    {
+        if (selected_quirks == 0)
+            m_quirks = chip8_quirks;
+        if (selected_quirks == 1)
+            m_quirks = chip48_quirks;
+        if (selected_quirks == 2)
+            m_quirks = schip_quirks;
+        if (selected_quirks == 3)
+            m_quirks = xochip_quirks;
+    }
+
+    ImGui::SameLine();
+
+    if (ImGui::Button("Configure"))
+    {
+        config.show_quirks_settings = true;
+    }
+
+    ImGui::Spacing();
+
     ImGui::Text("Launch options");
 
     // Start game
     if (ImGui::Button("Start"))
     {
         config.chip8_version = selected_version;
+        config.chip8_quirks = selected_quirks;
         config.rom_path = path_buffer;
 
         setup_from_config();
@@ -430,17 +499,16 @@ void chip8::render_launch_window()
     ImGui::SameLine();
 
     // Debug mode Checkbox
-    static bool debug_mode = false;
-    if (ImGui::Checkbox("Debugger", &debug_mode))
+    /*if (ImGui::Checkbox("Debugger", &config.is_debug_mode))
     {
 
-    }
+    }*/
 
     if (status == chip8_status::PLAYING || status == chip8_status::PAUSED)
     {
        ImGui::Spacing();
 
-        ImGui::Text("Playtime %.2f", game_timer);
+        ImGui::Text("Playtime %.1f", game_timer);
 
         if (status == chip8_status::PLAYING)
         {
@@ -498,11 +566,16 @@ void chip8::render_log_window()
         m_logger.copy();
     }
     ImGui::Spacing();
+
+    ImGui::BeginChild("Child", ImGui::GetContentRegionAvail());
+
     const auto& logs = m_logger.get_logs();
     for (const auto& log : logs)
     {
         ImGui::TextWrapped(log.c_str());
     }
+
+    ImGui::EndChild();
 
     ImGui::End();
 }
@@ -555,10 +628,68 @@ void chip8::render_additional_windows()
     {
         if (ImGui::Begin("Color settings", &config.show_color_settings))
         {
-            ImGui::ColorPicker3("0 color", config.color_0);
-            ImGui::ColorPicker3("1 color", config.color_1);
-            ImGui::ColorPicker3("2 Color", config.color_2);
-            ImGui::ColorPicker3("3 Color", config.color_3);
+            ImGui::TextWrapped("This is a color settings menu");
+            ImGui::TextWrapped("Here you can change the color palette used for rendering.");
+            ImGui::Separator();
+
+            ImGui::ColorEdit3("(0) Background color", config.color_0);
+            ImGui::ColorEdit3("(1) Fill color", config.color_1);
+            ImGui::ColorEdit3("(2) Second Bitplane color", config.color_2);
+            ImGui::ColorEdit3("(3) Mixed Bitplane color", config.color_3);
+
+            ImGui::Spacing();
+            ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "Colors 2 and 3 are only used when playing XO-Chip games on X0-Chip emulator.");
+        }
+        ImGui::End();
+    }
+
+    if (config.show_quirks_settings)
+    {
+        ImGui::Begin("Quirks settings", &config.show_quirks_settings);
+
+        ImGui::TextWrapped("This is a quirks settings menu.");
+        ImGui::TextWrapped("Here you can turn on/off some quirks.");
+        ImGui::TextWrapped("Quirks are automatically set to match the Chip8 version you chose but afterwards you can adjust them yourself.");
+        ImGui::Separator();
+
+        if (ImGui::BeginTable("split", 2))
+        {
+            ImGui::TableNextColumn();
+            ImGui::Checkbox("VF Reset", &m_quirks.vf_reset);
+
+            ImGui::TableNextColumn();
+            ImGui::Checkbox("Memory", &m_quirks.memory);
+
+            ImGui::TableNextColumn();
+            ImGui::Checkbox("Display wait", &m_quirks.display_wait);
+
+            ImGui::TableNextColumn();
+            ImGui::Checkbox("Clipping", &m_quirks.clipping);
+
+            ImGui::TableNextColumn();
+            ImGui::Checkbox("Shifting", &m_quirks.shifting);
+
+            ImGui::TableNextColumn();
+            ImGui::Checkbox("Jumping", &m_quirks.jumping);
+
+            ImGui::EndTable();
+        }
+        ImGui::SameLine();
+        ImGui::End();
+    }
+
+    if (config.show_audio_settings)
+    {
+        if (ImGui::Begin("Audio settings", &config.show_audio_settings))
+        {
+            ImGui::TextWrapped("This is an audio settings menu.");
+            ImGui::TextWrapped("You an adjust the volume and other settings here.");
+            ImGui::Separator();
+
+            if (ImGui::SliderFloat("Volume", &config.volume, 0.0f, 1.0f, "%.2f"))
+            {
+                if (m_audio) m_audio->set_volume(config.volume);
+            }
         }
         ImGui::End();
     }
