@@ -388,6 +388,7 @@ void chip8::render_launch_window()
 
     if (ImGui::BeginMenu("Settings"))
     {
+        ImGui::MenuItem("General settings", nullptr, &config.show_general_settings);
         ImGui::MenuItem("Color settings", nullptr, &config.show_color_settings);
         ImGui::MenuItem("Audio settings", nullptr, &config.show_audio_settings);
 
@@ -399,15 +400,18 @@ void chip8::render_launch_window()
 
     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + avail.x * 0.5f - ImGui::CalcTextSize("Welcome to my Chip8 emulator!").x * 0.5f);
     ImGui::Text("Welcome to my Chip8 emulator!");
-
-    ImGui::TextWrapped("- This is a revolutionary emulator made for the purpose of playing and creating retro games.\n"
-                "- This emulator can run any Chip8 game as well as games made for other versions of Chip8 (Chip48, Super-Chip, XO-Chip).\n"
-                "- Below you need to specify the path to the ROM you want to run and which version of Chip8 to use. "
-                "For more settings go to the \"settings\" tab.\n"
-                "If you never wish to see this text again uncheck the checkbox in the \"settings\" .\n");
-
     ImGui::Spacing();
-    ImGui::Separator();
+
+    if (config.show_intro)
+    {
+        ImGui::TextWrapped("- This is a revolutionary emulator made for the purpose of playing and creating retro games.\n"
+                    "- This emulator can run any Chip8 game as well as games made for other versions of Chip8 (Chip48, Super-Chip, XO-Chip).\n"
+                    "- Below you need to specify the path to the ROM you want to run and which version of Chip8 to use. "
+                    "For more settings go to the \"settings\" tab.\n"
+                    "If you never wish to see this text again uncheck the checkbox in the \"settings\" .\n");
+        ImGui::Spacing();
+        ImGui::Separator();
+    }
 
     ImGui::Text("Path to ROM");
 
@@ -587,9 +591,15 @@ void chip8::render_viewport_window()
 {
     ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
+    ImVec2 avail_size = ImGui::GetContentRegionAvail();
+
+    if (ImGui::InvisibleButton("##whywouldyouaddidtoinvisiblebutton", avail_size))
+    {
+        //Enter fullscreen
+    }
+
     if (texture && (status == chip8_status::PLAYING || status == chip8_status::PAUSED))
     {
-        ImVec2 avail_size = ImGui::GetContentRegionAvail();
 
         float scale_x = avail_size.x / texture->w;
         float scale_y = avail_size.y / texture->h;
@@ -632,7 +642,7 @@ void chip8::render_additional_windows()
     {
         if (ImGui::Begin("Color settings", &config.show_color_settings))
         {
-            ImGui::TextWrapped("This is a color settings menu");
+            ImGui::TextWrapped("This is a color settings menu.");
             ImGui::TextWrapped("Here you can change the color palette used for rendering.");
             ImGui::Separator();
 
@@ -694,6 +704,17 @@ void chip8::render_additional_windows()
             {
                 if (m_audio) m_audio->set_volume(config.volume);
             }
+        }
+        ImGui::End();
+    }
+
+    if (config.show_general_settings)
+    {
+        if (ImGui::Begin("General setting", &config.show_general_settings))
+        {
+            ImGui::TextWrapped("This is general settings menu.");
+
+            ImGui::Checkbox("Show introduction text", &config.show_intro);
         }
         ImGui::End();
     }
@@ -823,13 +844,13 @@ void chip8::render_debug_windows()
             ImGui::Text("I: %02X", m_core.get_index_register());
             ImGui::Text("SP: %02X", m_core.get_stack_pointer());
 
-            ImGui::Spacing();
+            ImGui::Separator();
 
             ImGui::Text("Timers");
             ImGui::Text("Delay timer: %02X", m_core.get_delay_timer_value());
             ImGui::Text("Sound timer: %02X", m_core.get_sound_timer_value());
 
-            ImGui::Spacing();
+            ImGui::Separator();
 
             ImGui::Text("Advanced Audio");
             ImGui::TextColored(ImVec4{0.5f, 0.5f, 0.5f, 1.0f}, "Only supported in XO-Chip.");
