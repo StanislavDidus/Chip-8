@@ -362,6 +362,7 @@ void chip8::render(window_renderer& renderer)
     render_launch_window();
     render_log_window();
     render_viewport_window();
+    render_debug_windows();
     render_additional_windows();
 
     // Render ImGui
@@ -500,10 +501,10 @@ void chip8::render_launch_window()
     ImGui::SameLine();
 
     // Debug mode Checkbox
-    /*if (ImGui::Checkbox("Debugger", &config.is_debug_mode))
+    if (ImGui::Checkbox("Debugger", &config.is_debug_mode))
     {
 
-    }*/
+    }
 
     if (status == chip8_status::PLAYING || status == chip8_status::PAUSED)
     {
@@ -624,6 +625,7 @@ void chip8::render_viewport_window()
     ImGui::End();
 }
 
+
 void chip8::render_additional_windows()
 {
     if (config.show_color_settings)
@@ -693,6 +695,167 @@ void chip8::render_additional_windows()
                 if (m_audio) m_audio->set_volume(config.volume);
             }
         }
+        ImGui::End();
+    }
+}
+
+void chip8::render_debug_windows()
+{
+    if (config.is_debug_mode)
+    {
+        ImGui::Begin("Memory Layout");
+
+        ImVec2 avail = ImGui::GetContentRegionAvail();
+
+        ImVec2 slot_size {ImGui::CalcTextSize("00 ")};
+
+        int columns = static_cast<int>(avail.x / slot_size.x);
+
+        if (m_memory && columns > 0)
+        {
+            if (ImGui::BeginChild("Child1", avail))
+            {
+                if (ImGui::BeginTable("split", columns))
+                {
+                    int rows = static_cast<int>(m_memory->get_size() / columns);
+
+                    ImGuiListClipper clipper;
+                    clipper.Begin(rows);
+
+                    while (clipper.Step())
+                    {
+                        for (int row = clipper.DisplayStart; row < clipper.DisplayEnd; ++row)
+                        {
+                            ImGui::TableNextRow();
+
+                            for (int col = 0; col < columns; ++col)
+                            {
+                                ImGui::TableNextColumn();
+
+                                int byte_index = row * columns + col;
+                                uint8_t value = m_memory->access_memory()[byte_index];
+
+                                ImVec4 color{1.0f, 1.0f, 1.0f, 1.0f};
+
+                                if (byte_index < STARTING_POINT)
+                                    color = {1.0f, 0.0f, 0.0f, 1.0};
+                                if (byte_index >= LOW_RES_FONT_MEMORY_LOCATION && byte_index < HIGH_RES_FONT_MEMORY_LOCATION + 160)
+                                    color = {0.0f, 0.0f, 1.0f, 1.0f};
+
+                                if (m_core.get_pc() == byte_index || m_core.get_pc() - 1 == byte_index)
+                                {
+                                    ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, 0xFF00FF00);
+                                    color = {0.0f, 0.0f, 0.0f, 1.0f};
+                                }
+                                ImGui::TextColored(color, "%02X", value);
+                            }
+                        }
+                    }
+                    clipper.End();
+                }
+                ImGui::EndTable();
+            }
+            ImGui::EndChild();
+        }
+
+        ImGui::End();
+    }
+
+    if (config.is_debug_mode)
+    {
+        if (ImGui::Begin("Register & Stack"))
+        {
+            ImVec2 avail = ImGui::GetContentRegionAvail();
+
+            ImGui::SetCursorPosX(avail.x * 0.25f - ImGui::CalcTextSize("Register").x * 0.5f);
+
+            ImGui::Text("Register");
+            ImGui::SameLine();
+            ImGui::SetCursorPosX(avail.x * 0.75f - ImGui::CalcTextSize("Stack").x * 0.5f);
+            ImGui::Text("Stack");
+
+            if (ImGui::BeginTable("Table_register", 3, ImGuiTableFlags_Borders, ImVec2{avail.x * 0.5f, avail.y}))
+            {
+                /*int total_rows = 6;
+
+                for (int r = 0; r < total_rows; ++r)
+                {
+                    ImGui::TableNextRow();
+                }*/
+
+                for (int i = 0; i < 16; ++i)
+                {
+                    uint8_t value = m_core.get_registry_value(i);
+
+                    ImGui::TableNextColumn();
+                    ImGui::Text("V%X: %02X", i, value);
+                }
+
+            }
+            ImGui::EndTable();
+
+            ImGui::SameLine();
+
+            //ImGui::SetCursorPosX(ImGui::GetCursorPosX() + avail.x * 0.5f - ImGui::CalcTextSize("Stack").x * 0.5f);
+            if (ImGui::BeginTable("Table_stack", 3, ImGuiTableFlags_Borders, ImVec2{avail.x * 0.5f, avail.y}))
+            {
+                for (int i = 0; i < 16; ++i)
+                {
+                    uint8_t value = m_core.get_stack_value(i);
+
+                    ImGui::TableNextColumn();
+                    ImGui::Text("S%i : %02X", i, value);
+                }
+            }
+
+            ImGui::EndTable();
+        }
+
+        ImGui::End();
+    }
+
+    if (config.is_debug_mode)
+    {
+        if (ImGui::Begin("Core Info"))
+        {
+            ImGui::Text("Core");
+            ImGui::Text("PC: %02X", m_core.get_pc());
+            ImGui::Text("I: %02X", m_core.get_index_register());
+            ImGui::Text("SP: %02X", m_core.get_stack_pointer());
+
+            ImGui::Spacing();
+
+            ImGui::Text("Timers");
+            ImGui::Text("Delay timer: %02X", m_core.get_delay_timer_value());
+            ImGui::Text("Sound timer: %02X", m_core.get_sound_timer_value());
+
+            ImGui::Spacing();
+
+            ImGui::Text("Advanced Audio");
+            ImGui::TextColored(ImVec4{0.5f, 0.5f, 0.5f, 1.0f}, "Only supported in XO-Chip.");
+
+            auto* advanced_audio = dynamic_cast<xochip_audio*>(m_audio.get());
+            if (advanced_audio != nullptr)
+            {
+                ImGui::Text("Sound pattern buffer: ");
+
+                auto* sound_pattern_buffer = &advanced_audio->get_audio_pattern_buffer();
+                if (ImGui::BeginTable("Table_sound_pattern_buffer", 8))
+                {
+                    for (int i = 0; i < 16; ++i)
+                    {
+                        ImGui::TableNextColumn();
+                        ImGui::Text("%02X", sound_pattern_buffer[i]);
+                    }
+                }
+                ImGui::EndTable();
+            }
+            else
+            {
+                ImGui::Text("Chosen Chip8 version does not support advanced audio.");
+            }
+        }
+
         ImGui::End();
     }
 }

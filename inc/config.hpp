@@ -26,6 +26,7 @@ struct chip8_config
     bool show_audio_settings = false;
 
     bool is_debug_mode = false;
+    bool follow_pc = false;
 
     float volume = 0.5f;
 

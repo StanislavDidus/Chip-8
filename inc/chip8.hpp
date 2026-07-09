@@ -91,6 +91,7 @@ private:
     void render_launch_window();
     void render_log_window();
     void render_viewport_window();
+    void render_debug_windows();
     void render_additional_windows();
 
     ImGui::FileBrowser file_dialog;
