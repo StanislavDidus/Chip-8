@@ -1,6 +1,9 @@
-# Chip-8 emulator
+# Chip-8 emulator 
 
 Chip-8 emulator written in modern C++.
+
+![icon.png](assets/sprites/icon_huge.png)
+
 
 ## Table of contents
 
