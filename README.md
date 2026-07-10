@@ -77,11 +77,11 @@ explanation of how instructions work and behave depending on the platform.
 
 * [Tvil's Guide to making a Chip-8 emulator](https://tobiasvl.github.io/blog/write-a-chip-8-emulator/)
 
-## Screenshots
-![game_mode.png](assets/screenshots/game_mode.png)
-![debug_mode.png](assets/screenshots/debug_mode.png)
-
 ## License
 This project is distribute under **MIT License**.
 
 You can see find it here [LICENSE](https://github.com/StanislavDidus/Chip-8/blob/main/LICENSE)
+
+## Screenshots
+![game_mode.png](assets/screenshots/game_mode.png)
+![debug_mode.png](assets/screenshots/debug_mode.png)
