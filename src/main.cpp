@@ -10,6 +10,8 @@
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_sdlrenderer3.h"
 
+#include "chip8_imgui_style.hpp"
+
 #include "CHIP48/chip48_instructions.hpp"
 #include "CHIP8/chip8_audio.hpp"
 
@@ -59,77 +61,14 @@ int init(Context& ctx)
     ImGui_ImplSDL3_InitForSDLRenderer(ctx.window_renderer_.get_window(), ctx.window_renderer_.get_renderer());
     ImGui_ImplSDLRenderer3_Init(ctx.window_renderer_.get_renderer());
 
-    ImGuiStyle style = ImGui::GetStyle();
-    /*
-    style.FontSizeBase = 50.0f;
-    style.FontScaleDpi = 4.0f;
-    style.ScaleAllSizes(15.0f);
-    */
-
     ImFont* main_font = io.Fonts->AddFontFromFileTTF("assets/fonts/OpenSans.ttf");
+    ImFont* header_font = io.Fonts->AddFontFromFileTTF("assets/fonts/Roboto-Bold.ttf");
     ImGui::PushFont(main_font, 30.0f);
 
-    /*
-    int display_w, display_h;
-    SDL_GetWindowSize(ctx.window_renderer.get_window(), &display_w, &display_h);
-    SDL_Rect rect{0,0, display_w, display_h};
-    SDL_SetRenderViewport(ctx.window_renderer.get_renderer(), &rect);
-    */
+    ImGui::StyleColorsDark();
+    setup_style();
 
-    ctx.chip = std::make_unique<chip8>(ctx.window_renderer_);
-
-    /*
-    if (ctx.chip8_hz == 1)
-        ctx.chip = std::make_unique<chip8>(ctx.window_renderer, CHIP8_INSTRUCTION_PER_FRAME);
-    else if (ctx.chip8_hz == 2)
-        ctx.chip = std::make_unique<chip8>(ctx.window_renderer, SCHIP_INSTRUCTION_PER_FRAME);
-    else if (ctx.chip8_hz == 3)
-        ctx.chip = std::make_unique<chip8>(ctx.window_renderer, XOCHIP_INSTRUCTION_PER_FRAME);
-
-    else
-    {
-        throw std::runtime_error("Wrong CHIP8 hz speed.");
-    }
-    */
-
-    /*if (ctx.chip8_version == 1)
-    {
-        ctx.chip->setup_chip8(
-            std::make_unique<chip8_display>(),
-            std::make_unique<chip48_instructions>(*ctx.chip),
-            std::make_unique<chip8_memory>(),
-            std::make_unique<chip8_audio>());
-    }
-    else if (ctx.chip8_version == 2)
-    {
-        ctx.chip->setup_chip8(
-            std::make_unique<chip8_display>(),
-            std::make_unique<chip48_instructions>(*ctx.chip),
-            std::make_unique<chip8_memory>(),
-            std::make_unique<chip8_audio>());
-    }
-    else if (ctx.chip8_version == 3)
-    {
-        ctx.chip->setup_chip8(
-            std::make_unique<schip_display>(),
-            std::make_unique<schip_instructions>(*ctx.chip),
-            std::make_unique<chip8_memory>(),
-            std::make_unique<chip8_audio>());
-    }
-    else if ( ctx.chip8_version == 4)
-    {
-        ctx.chip->setup_chip8(
-            std::make_unique<xochip_display>(),
-            std::make_unique<xochip_instructions>(*ctx.chip),
-            std::make_unique<xochip_memory>(),
-            std::make_unique<xochip_audio>());
-    }
-    else
-    {
-        throw std::runtime_error("Wrong CHIP8 version.");
-    }
-
-    ctx.chip->load_rom(ctx.path_to_rom);*/
+    ctx.chip = std::make_unique<chip8>(ctx.window_renderer_, application_style{main_font, header_font});
 
     return 0;
 }

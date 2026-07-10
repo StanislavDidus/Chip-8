@@ -38,8 +38,9 @@ void chip8::render_launch_window()
     static char path_buffer[128] {};
     ImVec2 avail = ImGui::GetContentRegionAvail();
 
-    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + avail.x * 0.5f - ImGui::CalcTextSize("Welcome to my Chip8 emulator!").x * 0.5f);
-    ImGui::Text("Welcome to my Chip8 emulator!");
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + avail.x * 0.5f - get_header_size(style, "Welcome to my Chip8 emulator!").x * 0.5f);
+    //ImGui::Text("Welcome to my Chip8 emulator!");
+    draw_header(style, "Welcome to my Chip8 emulator!", 35.0f);
     ImGui::Spacing();
 
     if (config.show_intro)
@@ -53,7 +54,7 @@ void chip8::render_launch_window()
         ImGui::Separator();
     }
 
-    ImGui::Text("Path to ROM");
+    draw_header(style, "Path to ROM");
 
     ImGui::InputText("##inputtext", path_buffer, sizeof(path_buffer));
 
@@ -66,7 +67,7 @@ void chip8::render_launch_window()
 
     ImGui::Spacing();
 
-    ImGui::Text("Chip8 version");
+    draw_header(style, "Chip8 version");
 
     // Choose Chip8 version
     static const char* versions[] {"Chip8", "Chip48", "Super-Chip", "XO-Chip"};
@@ -91,7 +92,7 @@ void chip8::render_launch_window()
 
     ImGui::Spacing();
 
-    ImGui::Text("Instruction execution speed");
+    draw_header(style, "Instruction execution speed");
 
     // Choose Chip8 instruction executing speed
     if (ImGui::InputInt("##inputint", &instructions_per_second))
@@ -107,7 +108,7 @@ void chip8::render_launch_window()
     ImGui::Spacing();
 
     // Quirks
-    ImGui::Text("Quirks");
+    draw_header(style, "Quirks");
 
     if (ImGui::Combo("##checkbox_quirks", &selected_quirks, quirks, IM_ARRAYSIZE(quirks)))
     {
@@ -130,7 +131,7 @@ void chip8::render_launch_window()
 
     ImGui::Spacing();
 
-    ImGui::Text("Launch options");
+    draw_header(style, "Launch options");
 
     // Start game
     if (ImGui::Button("Start"))
@@ -494,12 +495,12 @@ void chip8::render_debug_windows()
         {
             ImVec2 avail = ImGui::GetContentRegionAvail();
 
-            ImGui::SetCursorPosX(avail.x * 0.25f - ImGui::CalcTextSize("Register").x * 0.5f);
+            ImGui::SetCursorPosX(avail.x * 0.25f - get_header_size(style, "Register").x * 0.5f);
 
-            ImGui::Text("Register");
+            draw_header(style, "Register");
             ImGui::SameLine();
-            ImGui::SetCursorPosX(avail.x * 0.75f - ImGui::CalcTextSize("Stack").x * 0.5f);
-            ImGui::Text("Stack");
+            ImGui::SetCursorPosX(avail.x * 0.75f - get_header_size(style, "Stack").x * 0.5f);
+            draw_header(style, "Stack");
 
             if (ImGui::BeginTable("Table_register", 3, ImGuiTableFlags_Borders, ImVec2{avail.x * 0.5f, avail.y}))
             {
@@ -545,20 +546,20 @@ void chip8::render_debug_windows()
     {
         if (ImGui::Begin("Core Info"))
         {
-            ImGui::Text("Core");
+            draw_header(style, "Core");
             ImGui::Text("PC: %02X", m_core.get_pc());
             ImGui::Text("I: %02X", m_core.get_index_register());
             ImGui::Text("SP: %02X", m_core.get_stack_pointer());
 
             ImGui::Separator();
 
-            ImGui::Text("Timers");
+            draw_header(style, "Timers");
             ImGui::Text("Delay timer: %02X", m_core.get_delay_timer_value());
             ImGui::Text("Sound timer: %02X", m_core.get_sound_timer_value());
 
             ImGui::Separator();
 
-            ImGui::Text("Advanced Audio");
+            draw_header(style, "Advanced Audio");
             ImGui::TextColored(ImVec4{0.5f, 0.5f, 0.5f, 1.0f}, "Only supported in XO-Chip.");
 
             auto* advanced_audio = dynamic_cast<xochip_audio*>(m_audio.get());

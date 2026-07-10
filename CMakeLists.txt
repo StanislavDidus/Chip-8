@@ -100,6 +100,7 @@ set (OTHER_HEADER_FILES
         inc/enums.hpp
         inc/logger.hpp
         inc/quirks.h
+        inc/chip8_imgui_style.hpp
 )
 
 set(HEADER_FILES ${CHIP8_HEADER_FILES} ${CHIP48_HEADER_FILES} ${SCHIP_HEADER_FILES} ${XOCHIP_HEADER_FILES} ${OTHER_HEADER_FILES})
