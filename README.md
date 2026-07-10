@@ -74,9 +74,16 @@ To develop this emulator I used various resources. Firstly, I got to know the sp
 and some technical details from this first **Austin Morlan's Tutorial**. Then, I followed the **Guide to making a Chip-8 emulator** for more in-depth 
 explanation of how instructions work and behave depending on the platform.
 
+For the implementation details of Super and XO Chip I used the Octo's guides that explain in details how
+each of the platforms work.
+
 * [Austin Morlan Tutorial](https://austinmorlan.com/posts/chip8_emulator/)
 
 * [Tvil's Guide to making a Chip-8 emulator](https://tobiasvl.github.io/blog/write-a-chip-8-emulator/)
+
+* [Octo Mastering SuperChip](https://johnearnest.github.io/Octo/docs/SuperChip.html)
+
+* [Octo Extensions](https://johnearnest.github.io/Octo/docs/XO-ChipSpecification.html)
 
 ## License
 This project is distribute under **MIT License**.
