@@ -52,6 +52,7 @@ but feel free to change and move around them as you want.
 This emulator uses libraries such as **SDL3** and **imgui**.
 - **SDL3** for rendering, user input, and audio.
 - **imgui** for User Interface.
+- **imgui_filebrowser** extension was also used to be able to use file browsing in emulator.
 
 ## Debugging
 My emulator supports a debugging mode to help you debug and create your own Chip8 games 
