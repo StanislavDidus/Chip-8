@@ -35,6 +35,12 @@ window_renderer& window_renderer::operator=(window_renderer&& other) noexcept
     return *this;
 }
 
+void window_renderer::toggle_fullscreen()
+{
+    m_fullscreen = !m_fullscreen;
+    SDL_SetWindowFullscreen(m_window, m_fullscreen);
+}
+
 void window_renderer::close()
 {
     if (m_renderer)

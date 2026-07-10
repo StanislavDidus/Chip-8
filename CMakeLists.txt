@@ -53,6 +53,7 @@ set(OTHER_SOURCE_FILES
         src/SDL/window_renderer.cpp
         src/Audio/audio.cpp
         src/instructions.cpp
+        src/chip8_imgui.cpp
 )
 
 set(SOURCE_FILES ${CHIP8_SOURCE_FILES} ${CHIP48_SOURCE_FILES} ${SCHIP_SOURCE_FILES} ${XOCHIP_SOURCE_FILES} ${OTHER_SOURCE_FILES})

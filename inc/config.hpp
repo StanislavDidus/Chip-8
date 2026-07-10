@@ -24,8 +24,12 @@ struct chip8_config
     bool show_color_settings = false;
     bool show_quirks_settings = false;
     bool show_audio_settings = false;
+    bool show_general_settings = false;
 
+    bool show_intro = true;
     bool is_debug_mode = false;
+    bool is_immersive_mode = false;
+    bool follow_pc = false;
 
     float volume = 0.5f;
 

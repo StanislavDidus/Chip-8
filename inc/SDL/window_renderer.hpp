@@ -15,6 +15,8 @@ public:
     window_renderer(window_renderer&& other) noexcept;
     window_renderer& operator=(window_renderer&& other) noexcept;
 
+    void toggle_fullscreen();
+
     void close();
 
     template <typename Self>
@@ -32,4 +34,6 @@ public:
 private:
     SDL_Window* m_window = nullptr;
     SDL_Renderer* m_renderer = nullptr;
+
+    bool m_fullscreen = false;
 };
