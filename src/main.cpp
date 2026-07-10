@@ -43,8 +43,11 @@ int init(Context& ctx)
 
     // Setup icon
     SDL_Surface* icon_surface = SDL_LoadPNG("assets/sprites/icon.png");
+    SDL_Surface* alternate_image = SDL_ScaleSurface(icon_surface, 64, 64, SDL_SCALEMODE_NEAREST);
+    SDL_AddSurfaceAlternateImage(icon_surface, alternate_image);
     SDL_SetWindowIcon(ctx.window_renderer_.get_window(), icon_surface);
     SDL_DestroySurface(icon_surface);
+    SDL_DestroySurface(alternate_image);
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();

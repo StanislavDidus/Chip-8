@@ -108,6 +108,11 @@ set(ALL_FILES ${SOURCE_FILES} ${HEADER_FILES})
 
 add_executable(CHIP8 ${ALL_FILES})
 
+add_custom_target(copy_assets_em
+        COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_LIST_DIR}/copy_assets.cmake
+)
+add_dependencies(CHIP8 copy_assets_em)
+
 target_include_directories(CHIP8 PUBLIC ${CMAKE_SOURCE_DIR}/inc)
 
 target_link_libraries(CHIP8 PUBLIC SDL3::SDL3-static imgui)
