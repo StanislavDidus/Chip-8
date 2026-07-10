@@ -27,8 +27,9 @@
 #include "XOCHIP/xochip_memory.hpp"
 #include "XOCHIP/xochip_quirks.hpp"
 
-chip8::chip8(window_renderer& renderer)
+chip8::chip8(window_renderer& renderer, const application_style& style)
     : renderer(renderer)
+    , style(style)
 {
     // Init ImGui file dialog
 

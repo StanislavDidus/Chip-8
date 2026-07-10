@@ -5,6 +5,7 @@
 #include <random>
 #include <unordered_map>
 
+#include "chip8_imgui_style.hpp"
 #include "config.hpp"
 #include "core.hpp"
 #include "display.hpp"
@@ -26,7 +27,7 @@
 class chip8
 {
 public:
-    chip8(window_renderer& renderer);
+    chip8(window_renderer& renderer, const application_style& style);
     ~chip8();
 
     void update(float delta_time);
@@ -91,6 +92,9 @@ private:
 
     // Logger
     logger m_logger {};
+
+    // Style
+    application_style style;
 
     // ImGui window
     void render_launch_window();
