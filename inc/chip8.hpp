@@ -59,6 +59,11 @@ private:
     void setup_chip8(uint8_t version);
     void load_rom(const std::filesystem::path& path_to_rom);
 
+    // Instruction execution
+    void execute_n_instructions(int number);
+    void update_timers();
+    float frame_counter = 0.0f;
+
     // ROM
     std::string rom_name {};
     int32_t instructions_per_second = 0;

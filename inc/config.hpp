@@ -28,6 +28,7 @@ struct chip8_config
 
     bool show_intro = true;
     bool is_debug_mode = false;
+    bool is_immersive_mode = false;
     bool follow_pc = false;
 
     float volume = 0.5f;
