@@ -470,7 +470,7 @@ void chip8::render_debug_windows()
                                 if (byte_index >= LOW_RES_FONT_MEMORY_LOCATION && byte_index < HIGH_RES_FONT_MEMORY_LOCATION + 160)
                                     color = {0.0f, 0.0f, 1.0f, 1.0f};
 
-                                if (m_core.get_pc() == byte_index || m_core.get_pc() - 1 == byte_index)
+                                if (m_core.get_pc() == byte_index || m_core.get_pc() + 1 == byte_index)
                                 {
                                     ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, 0xFF00FF00);
                                     color = {0.0f, 0.0f, 0.0f, 1.0f};
