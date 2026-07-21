@@ -27,12 +27,12 @@
 #include "XOCHIP/xochip_memory.hpp"
 #include "XOCHIP/xochip_quirks.hpp"
 
-chip8::chip8(window_renderer& renderer, const application_style& style)
+chip8::chip8(window_renderer& renderer, const application_style& style, const chip8_config& config)
     : renderer(renderer)
     , style(style)
+    , config(config)
 {
     // Init ImGui file dialog
-
     file_dialog.SetTitle("File Browser");
     file_dialog.SetTypeFilters({".ch8"});
 }
@@ -82,18 +82,7 @@ void chip8::setup_chip8(uint8_t version)
         throw std::runtime_error{"Wrong Chip8 version."};
     }
 
-    /*if (config.chip8_quirks == 0)
-        m_quirks = chip8_quirks;
-    else if (config.chip8_quirks == 1)
-        m_quirks = chip48_quirks;
-    else if (config.chip8_quirks == 2)
-        m_quirks = schip_quirks;
-    else if (config.chip8_quirks == 3)
-        m_quirks = xochip_quirks;
-    else
-        throw std::runtime_error{"Wrong Chip8 quirk."};*/
-
-    instructions_per_frame = static_cast<int32_t>(static_cast<float>(instructions_per_second) / 60.0f);
+    config.instructions_per_frame = static_cast<int32_t>(static_cast<float>(config.instructions_per_second) / 60.0f);
 
     m_audio->set_volume(config.volume);
 
@@ -225,7 +214,7 @@ void chip8::setup_from_config()
     }
     catch (std::exception& e)
     {
-        m_logger.log(std::format("Error occured during Chip8 initialization: {}", e.what()));
+        m_logger.log(std::format("Error occurred during Chip8 initialization: {}", e.what()));
     }
 }
 
@@ -251,7 +240,7 @@ void chip8::execute_n_instructions(int number)
             break;
     }
 
-    frame_counter += static_cast<float>(number) / static_cast<float>(instructions_per_frame);
+    frame_counter += static_cast<float>(number) / static_cast<float>(config.instructions_per_frame);
     while (frame_counter >= 1.0f)
     {
         update_timers();
@@ -315,7 +304,7 @@ void chip8::update(float delta_time)
         {
             game_timer += delta_time;
 
-            execute_n_instructions(instructions_per_frame);
+            execute_n_instructions(config.instructions_per_frame);
         }
     }
     catch (std::exception& e)

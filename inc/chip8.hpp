@@ -27,7 +27,7 @@
 class chip8
 {
 public:
-    chip8(window_renderer& renderer, const application_style& style);
+    chip8(window_renderer& renderer, const application_style& style, const chip8_config& config);
     ~chip8();
 
     void update(float delta_time);
@@ -47,6 +47,7 @@ public:
     core& get_core() { return m_core; }
     audio& get_audio() { return *m_audio; }
     quirks& get_quirks() { return m_quirks; }
+    const chip8_config& get_config() const { return config; }
     const std::string& get_rom_name() const { return rom_name; }
 
     [[nodiscard]] bool is_key_pressed(uint8_t key) { return keys[key]; }
@@ -67,8 +68,6 @@ private:
 
     // ROM
     std::string rom_name {};
-    int32_t instructions_per_second = 0;
-    int32_t instructions_per_frame = 0;
     uint16_t fetch() const;
 
     // Components

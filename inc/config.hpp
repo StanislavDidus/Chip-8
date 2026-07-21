@@ -19,7 +19,10 @@ struct chip8_config
 {
     uint8_t chip8_version = 0;
     uint8_t chip8_quirks = 0;
-    std::string rom_path {};
+    char rom_path[256] {};
+
+    int32_t instructions_per_second = 0;
+    int32_t instructions_per_frame = 0;
 
     bool show_color_settings = false;
     bool show_quirks_settings = false;

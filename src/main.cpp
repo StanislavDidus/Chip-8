@@ -1,3 +1,4 @@
+#include <fstream>
 #include <iostream>
 #include <functional>
 
@@ -35,11 +36,10 @@ struct Context
     std::unique_ptr<chip8> chip;
 };
 
-int init(Context& ctx)
+void init(Context& ctx)
 {
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_AUDIO))
-        return -1;
-
+        throw std::runtime_error {"Error when initializing SDL."};
 
     ctx.window_renderer_ = std::move(window_renderer{"Chip8 Emulator Window", 960, 540 ,SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY});
 
@@ -68,19 +68,28 @@ int init(Context& ctx)
     ImGui::StyleColorsDark();
     setup_style();
 
-    ctx.chip = std::make_unique<chip8>(ctx.window_renderer_, application_style{main_font, header_font});
+    // Load config if it exists
+    chip8_config config {};
+    std::ifstream cfg {"config.bin", std::ios::binary};
+    if (cfg)
+    {
+        cfg.read(reinterpret_cast<char*>(&config), sizeof(config));
 
-    return 0;
+        if (cfg.bad())
+            throw std::runtime_error {"Error when reading from a config.bin file."};
+    }
+
+    ctx.chip = std::make_unique<chip8>(ctx.window_renderer_, application_style{main_font, header_font}, config);
 }
 
-int update(Context& ctx)
+void update(Context& ctx)
 {
     SDL_Event event;
     bool running = true;
 
     SDL_Renderer* renderer = ctx.window_renderer_.get_renderer();
     if (!renderer)
-        return -1;
+        throw std::runtime_error {"Error when creating SDL_Renderer."};
 
     double delta_time = 0.0;
 
@@ -117,64 +126,27 @@ int update(Context& ctx)
             SDL_Delay(16.666 - delta_time);
 
     }
-    return 0;
 }
 
-int shutdown(Context& ctx)
+void shutdown(Context& ctx)
 {
     ctx.window_renderer_.close();
 
-    return 0;
-}
-
-
-#ifndef NDEBUG
-#define TEST
-#endif
-
-int main(int argc, char* argv[])
-{
-    if (argc < 1)
+    std::ofstream cfg("config.bin", std::ios::binary);
+    if (!cfg)
     {
-        std::cerr << "Not enough arguments." << std::endl;
-        return -1;
+        throw std::runtime_error{"Could not open config.bin file for writing."};
     }
 
-#ifdef TEST
-    argc = 2;
-    char arg0[] = "./CHIP8";
+    cfg.write(reinterpret_cast<const char*>(&ctx.chip->get_config()), sizeof(chip8_config));
 
-    ///
-    // CHANGE THIS PATH TO THE ROM FILE YOU WANT TO RUN
-    ///
-    char arg1[] = "rom/sweetcopter.ch8";
+    if (cfg.bad())
+        throw std::runtime_error{"Could not write to a config.bin file."};
+}
 
-    *argv = new char[2];
-    argv[0] = arg0;
-    argv[1] = arg1;
-#endif
-
+int main()
+{
     Context context;
-
-    /*std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<" << std::endl;
-    std::cout << "Choose the version of CHIP8 you want to use:" << std::endl;
-    std::cout << "1: Chip8 (Standard version that supports older games)" << std::endl;
-    std::cout << "2: Chip48 (Modernized version of Chip8)" << std::endl;
-    std::cout << "3: Super-Chip (Improved version of Chip48 with bigger screen and new capabilities)" << std::endl;
-    std::cout << "4: XO-Chip (Super-Chip advancement that supports multiple colors and more sound effects)" << std::endl;
-    std::cout << "Note: Most of the games only support a specific platform" << std::endl;
-    std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<" << std::endl;
-    std::cin >> context.chip8_version;
-
-    std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<" << std::endl;
-    std::cout << "Choose the instructions per second that you want to run the emulator on:" << std::endl;
-    std::cout << "1: 700hz (Common speed for Chip8 and Chip48 games)" << std::endl;
-    std::cout << "2: 1800hz (Required if you want to run Super-Chip games) " << std::endl;
-    std::cout << "3: 4500hz (Extra huge speed, needed for some bih XOChip games) " << std::endl;
-    std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<" << std::endl;
-    std::cin >> context.chip8_hz;
-
-    context.path_to_rom = argv[1];*/
 
     init(context);
 

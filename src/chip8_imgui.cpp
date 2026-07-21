@@ -35,7 +35,9 @@ void chip8::render_launch_window()
         ImGui::EndMenu();
     }
 
-    static char path_buffer[128] {};
+    static char path_buffer[256] {};
+    std::copy(std::begin(config.rom_path), std::end(config.rom_path), std::begin(path_buffer));
+
     ImVec2 avail = ImGui::GetContentRegionAvail();
 
     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + avail.x * 0.5f - get_header_size(style, "Welcome to my Chip8 emulator!").x * 0.5f);
@@ -71,10 +73,10 @@ void chip8::render_launch_window()
 
     // Choose Chip8 version
     static const char* versions[] {"Chip8", "Chip48", "Super-Chip", "XO-Chip"};
-    static int selected_version = 0;
+    static int selected_version = config.chip8_version;
 
     static const char* quirks[] {"Chip8", "Chip48", "Super-Chip", "XO-Chip"};
-    static int selected_quirks = 0;
+    static int selected_quirks = config.chip8_quirks;
 
     if (ImGui::Combo("##checkbox", &selected_version, versions, IM_ARRAYSIZE(versions)))
     {
@@ -95,15 +97,15 @@ void chip8::render_launch_window()
     draw_header(style, "Instruction execution speed");
 
     // Choose Chip8 instruction executing speed
-    if (ImGui::InputInt("##inputint", &instructions_per_second))
+    if (ImGui::InputInt("##inputint", &config.instructions_per_second))
     {
-        instructions_per_second = std::clamp(instructions_per_second, 0, std::numeric_limits<int32_t>::max());
+        config.instructions_per_second = std::clamp(config.instructions_per_second, 0, std::numeric_limits<int32_t>::max());
     }
-    if (ImGui::Button("Chip8")) {instructions_per_second = CHIP8_INSTRUCTIONS_PER_SECOND; instructions_per_frame = CHIP8_INSTRUCTION_PER_FRAME; }
+    if (ImGui::Button("Chip8")) {config.instructions_per_second = CHIP8_INSTRUCTIONS_PER_SECOND; config.instructions_per_frame = CHIP8_INSTRUCTION_PER_FRAME; }
     ImGui::SameLine();
-    if (ImGui::Button("Super-Chip")) {instructions_per_second = SCHIP_INSTRUCTIONS_PER_SECOND; instructions_per_frame = SCHIP_INSTRUCTION_PER_FRAME; }
+    if (ImGui::Button("Super-Chip")) {config.instructions_per_second = SCHIP_INSTRUCTIONS_PER_SECOND; config.instructions_per_frame = SCHIP_INSTRUCTION_PER_FRAME; }
     ImGui::SameLine();
-    if (ImGui::Button("XO-Chip")) {instructions_per_second = XOCHIP_INSTRUCTIONS_PER_SECOND; instructions_per_frame = XOCHIP_INSTRUCTION_PER_FRAME; }
+    if (ImGui::Button("XO-Chip")) {config.instructions_per_second = XOCHIP_INSTRUCTIONS_PER_SECOND; config.instructions_per_frame = XOCHIP_INSTRUCTION_PER_FRAME; }
 
     ImGui::Spacing();
 
@@ -138,7 +140,7 @@ void chip8::render_launch_window()
     {
         config.chip8_version = selected_version;
         config.chip8_quirks = selected_quirks;
-        config.rom_path = path_buffer;
+        std::copy(std::begin(path_buffer), std::end(path_buffer), std::begin(config.rom_path));
 
         setup_from_config();
     }
