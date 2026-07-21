@@ -244,7 +244,7 @@ void chip8::render_log_window()
     const auto& logs = m_logger.get_logs();
     for (const auto& log : logs)
     {
-        ImGui::TextWrapped(log.c_str());
+        ImGui::TextWrapped("%s", log.c_str());
     }
 
     ImGui::EndChild();

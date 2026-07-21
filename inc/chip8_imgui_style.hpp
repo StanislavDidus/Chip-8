@@ -22,7 +22,7 @@ inline void draw_header(application_style& style, const std::string& text, float
 {
     //ImGui::PopFont();
     ImGui::PushFont(style.header_font, size);
-    ImGui::Text(text.c_str());
+    ImGui::Text("%s", text.c_str());
     ImGui::PopFont();
     //ImGui::PushFont(style.main_font);
 }
