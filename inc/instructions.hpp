@@ -3,6 +3,8 @@
 #include <unordered_map>
 #include <cstdint>
 
+#include "constants.hpp"
+
 class chip8;
 
 using instruction = std::function<void()>;
@@ -25,12 +27,12 @@ protected:
     instruction_table table_E;
     instruction_table table_F;
 
-    [[nodiscard]] uint16_t get_nnn_address() const { return opcode & 0x0FFF; }
-    [[nodiscard]] uint8_t get_nn_value() const { return opcode & 0x00FF; }
-    [[nodiscard]] uint8_t get_n_value() const { return opcode & 0x000F; }
-    [[nodiscard]] uint8_t get_registry_x_index() const { return (opcode & 0x0F00) >> 8; }
-    [[nodiscard]] uint8_t get_registry_y_index() const { return (opcode & 0x00F0) >> 4; }
-    [[nodiscard]] uint8_t get_registry_xy_index() const { return (opcode & 0xFF0) >> 4; }
+    [[nodiscard]] uint16_t get_nnn_address() const { return opcode & BYTECODE_NNN; }
+    [[nodiscard]] uint8_t get_nn_value() const { return opcode & BYTECODE_NN; }
+    [[nodiscard]] uint8_t get_n_value() const { return opcode & BYTECODE_N; }
+    [[nodiscard]] uint8_t get_registry_x_index() const { return (opcode & BYTECODE_X) >> 8; }
+    [[nodiscard]] uint8_t get_registry_y_index() const { return (opcode & BYTECODE_Y) >> 4; }
+    [[nodiscard]] uint8_t get_registry_xy_index() const { return (opcode & BYTECODE_XY) >> 4; }
 
     uint16_t opcode {};
     chip8& owner;

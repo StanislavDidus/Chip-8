@@ -36,7 +36,12 @@ void chip8::render_launch_window()
     }
 
     static char path_buffer[256] {};
-    std::copy(std::begin(config.rom_path), std::end(config.rom_path), std::begin(path_buffer));
+    static bool coppied = false;
+    if (!coppied)
+    {
+        std::copy(std::begin(config.rom_path), std::end(config.rom_path), std::begin(path_buffer));
+        coppied = true;
+    }
 
     ImVec2 avail = ImGui::GetContentRegionAvail();
 
@@ -218,6 +223,7 @@ void chip8::render_launch_window()
         //strncpy_s(path_buffer, sizeof(path_buffer), selected_path.c_str(), MAX);
         memset(path_buffer, 0, sizeof(path_buffer));
         std::copy_n(selected_path.c_str(), std::min(strlen(selected_path.c_str()), sizeof(path_buffer) - 1), path_buffer);
+        std::copy(std::begin(path_buffer), std::end(path_buffer), std::begin(config.rom_path));
         file_dialog.ClearSelected();
     }
 }
@@ -361,7 +367,7 @@ void chip8::render_additional_windows()
             ImGui::ColorEdit3("(3) Mixed Bitplane color", config.color_3);
 
             ImGui::Spacing();
-            ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "Colors 2 and 3 are only used when playing XO-Chip games on X0-Chip emulator.");
+            ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "Colors 2 and 3 are only used when playing XO-Chip games on XO-Chip emulator.");
         }
         ImGui::End();
     }
@@ -439,14 +445,26 @@ void chip8::render_debug_windows()
 
         ImVec2 slot_size {ImGui::CalcTextSize("00 ")};
 
-        int columns = static_cast<int>(avail.x / slot_size.x);
+        int columns = std::clamp(static_cast<int>(avail.x / slot_size.x),0,16);
+        int total_columns = columns + 1;
 
         if (m_memory && columns > 0)
         {
             if (ImGui::BeginChild("Child1", avail))
             {
-                if (ImGui::BeginTable("split", columns))
+                if (ImGui::BeginTable("split", total_columns, ImGuiTableFlags_ScrollY | ImGuiTableFlags_Borders))
                 {
+                    ImGui::TableSetupColumn("     &", ImGuiTableColumnFlags_WidthFixed, 75.0f);
+
+                    // Setup columns
+                    for (int i = 0; i < columns; ++i)
+                    {
+                        std::string label = std::format("{:02X}", i);
+                        ImGui::TableSetupColumn(label.c_str());
+                    }
+
+                    ImGui::TableHeadersRow();
+
                     int rows = static_cast<int>(m_memory->get_size() / columns);
 
                     ImGuiListClipper clipper;
@@ -458,9 +476,15 @@ void chip8::render_debug_windows()
                         {
                             ImGui::TableNextRow();
 
+                            // Render the Address row in the first column
+                            ImGui::TableSetColumnIndex(0);
+                            size_t row_address = row * columns;
+                            ImGui::TextDisabled("0x%04zX", row_address);
+
                             for (int col = 0; col < columns; ++col)
                             {
-                                ImGui::TableNextColumn();
+                                //ImGui::TableNextColumn();
+                                ImGui::TableSetColumnIndex(col + 1);
 
                                 int byte_index = row * columns + col;
                                 uint8_t value = m_memory->access_memory()[byte_index];
