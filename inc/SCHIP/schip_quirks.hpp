@@ -1,6 +1,6 @@
 #pragma once
 
-#include "quirks.h"
+#include "quirks.hpp"
 
 constexpr quirks schip_quirks =
 {

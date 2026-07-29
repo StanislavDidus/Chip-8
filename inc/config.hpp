@@ -1,4 +1,6 @@
 #pragma once
+#include "quirks.hpp"
+#include "CHIP8/chip8_quirks.hpp"
 
 constexpr int STARTING_POINT = 0x200;
 constexpr int LOW_RES_FONT_MEMORY_LOCATION = 0x50;
@@ -18,8 +20,10 @@ constexpr const char* GAMESAVES_LOCATION = "gamesaves/";
 struct chip8_config
 {
     uint8_t chip8_version = 0;
-    uint8_t chip8_quirks = 0;
     char rom_path[256] {};
+
+    int quirks_version = 0;
+    quirks quirks_values = chip8_quirks;
 
     int32_t instructions_per_second = 0;
     int32_t instructions_per_frame = 0;

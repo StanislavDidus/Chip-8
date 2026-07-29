@@ -19,7 +19,7 @@
 #include "imgui.h"
 #include "imfilebrowser.h"
 #include "logger.hpp"
-#include "quirks.h"
+#include "quirks.hpp"
 #include "CHIP8/chip8_quirks.hpp"
 // Variants
 // CHIP8-Classic, CHIP8-48, SUPER-CHIP, XO-CHIP
@@ -46,7 +46,7 @@ public:
     memory& get_memory() { return *m_memory; }
     core& get_core() { return m_core; }
     audio& get_audio() { return *m_audio; }
-    quirks& get_quirks() { return m_quirks; }
+    quirks& get_quirks() { return config.quirks_values; }
     const chip8_config& get_config() const { return config; }
     const std::string& get_rom_name() const { return rom_name; }
 
@@ -76,7 +76,7 @@ private:
     std::unique_ptr<memory> m_memory;
     std::unique_ptr<audio> m_audio;
     core m_core {};
-    quirks m_quirks = chip8_quirks;
+    //quirks m_quirks = chip8_quirks;
 
     // Image
     SDL_Surface* surface = nullptr;

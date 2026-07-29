@@ -99,7 +99,7 @@ set (OTHER_HEADER_FILES
         inc/core.hpp
         inc/enums.hpp
         inc/logger.hpp
-        inc/quirks.h
+        inc/quirks.hpp
         inc/chip8_imgui_style.hpp
         inc/constants.hpp
 )

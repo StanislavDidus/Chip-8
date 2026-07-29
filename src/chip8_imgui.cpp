@@ -81,20 +81,20 @@ void chip8::render_launch_window()
     static int selected_version = config.chip8_version;
 
     static const char* quirks[] {"Chip8", "Chip48", "Super-Chip", "XO-Chip"};
-    static int selected_quirks = config.chip8_quirks;
+    static int selected_quirks = config.quirks_version;
 
     if (ImGui::Combo("##checkbox", &selected_version, versions, IM_ARRAYSIZE(versions)))
     {
         selected_quirks = selected_version;
 
         if (selected_quirks == 0)
-            m_quirks = chip8_quirks;
+           config.quirks_values = chip8_quirks;
         if (selected_quirks == 1)
-            m_quirks = chip48_quirks;
+           config.quirks_values = chip48_quirks;
         if (selected_quirks == 2)
-            m_quirks = schip_quirks;
+           config.quirks_values = schip_quirks;
         if (selected_quirks == 3)
-            m_quirks = xochip_quirks;
+           config.quirks_values = xochip_quirks;
     }
 
     ImGui::Spacing();
@@ -120,13 +120,13 @@ void chip8::render_launch_window()
     if (ImGui::Combo("##checkbox_quirks", &selected_quirks, quirks, IM_ARRAYSIZE(quirks)))
     {
         if (selected_quirks == 0)
-            m_quirks = chip8_quirks;
+            config.quirks_values = chip8_quirks;
         if (selected_quirks == 1)
-            m_quirks = chip48_quirks;
+            config.quirks_values = chip48_quirks;
         if (selected_quirks == 2)
-            m_quirks = schip_quirks;
+            config.quirks_values = schip_quirks;
         if (selected_quirks == 3)
-            m_quirks = xochip_quirks;
+            config.quirks_values = xochip_quirks;
     }
 
     ImGui::SameLine();
@@ -144,10 +144,24 @@ void chip8::render_launch_window()
     if (ImGui::Button("Start"))
     {
         config.chip8_version = selected_version;
-        config.chip8_quirks = selected_quirks;
+        config.quirks_version = selected_quirks;
         std::copy(std::begin(path_buffer), std::end(path_buffer), std::begin(config.rom_path));
 
         setup_from_config();
+    }
+
+
+    ImGui::SameLine();
+
+    if (ImGui::Button("Start & Pause"))
+    {
+        config.chip8_version = selected_version;
+        config.quirks_version = selected_quirks;
+        std::copy(std::begin(path_buffer), std::end(path_buffer), std::begin(config.rom_path));
+
+        setup_from_config();
+
+        status = chip8_status::PAUSED;
     }
 
     ImGui::SameLine();
@@ -155,7 +169,6 @@ void chip8::render_launch_window()
     // Debug mode Checkbox
     if (ImGui::Checkbox("Debugger", &config.is_debug_mode))
     {
-
     }
 
     bool is_disabled_hack = false;
@@ -384,22 +397,22 @@ void chip8::render_additional_windows()
         if (ImGui::BeginTable("split", 2))
         {
             ImGui::TableNextColumn();
-            ImGui::Checkbox("VF Reset", &m_quirks.vf_reset);
+            ImGui::Checkbox("VF Reset", &config.quirks_values.vf_reset);
 
             ImGui::TableNextColumn();
-            ImGui::Checkbox("Memory", &m_quirks.memory);
+            ImGui::Checkbox("Memory", &config.quirks_values.memory);
 
             ImGui::TableNextColumn();
-            ImGui::Checkbox("Display wait", &m_quirks.display_wait);
+            ImGui::Checkbox("Display wait", &config.quirks_values.display_wait);
 
             ImGui::TableNextColumn();
-            ImGui::Checkbox("Clipping", &m_quirks.clipping);
+            ImGui::Checkbox("Clipping", &config.quirks_values.clipping);
 
             ImGui::TableNextColumn();
-            ImGui::Checkbox("Shifting", &m_quirks.shifting);
+            ImGui::Checkbox("Shifting", &config.quirks_values.shifting);
 
             ImGui::TableNextColumn();
-            ImGui::Checkbox("Jumping", &m_quirks.jumping);
+            ImGui::Checkbox("Jumping", &config.quirks_values.jumping);
 
             ImGui::EndTable();
         }
@@ -455,6 +468,8 @@ void chip8::render_debug_windows()
                 if (ImGui::BeginTable("split", total_columns, ImGuiTableFlags_ScrollY | ImGuiTableFlags_Borders))
                 {
                     ImGui::TableSetupColumn("     &", ImGuiTableColumnFlags_WidthFixed, 75.0f);
+
+                    ImGui::TableSetupScrollFreeze(0, 1);
 
                     // Setup columns
                     for (int i = 0; i < columns; ++i)
