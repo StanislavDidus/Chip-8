@@ -104,7 +104,8 @@ void chip8::render_launch_window()
     // Choose Chip8 instruction executing speed
     if (ImGui::InputInt("##inputint", &config.instructions_per_second))
     {
-        config.instructions_per_second = std::clamp(config.instructions_per_second, 0, std::numeric_limits<int32_t>::max());
+        config.instructions_per_second = std::clamp(config.instructions_per_second, 1, std::numeric_limits<int32_t>::max());
+        config.instructions_per_frame = std::max(1, static_cast<int>(static_cast<float>(config.instructions_per_second) / 60.0f));
     }
     if (ImGui::Button("Chip8")) {config.instructions_per_second = CHIP8_INSTRUCTIONS_PER_SECOND; config.instructions_per_frame = CHIP8_INSTRUCTION_PER_FRAME; }
     ImGui::SameLine();
