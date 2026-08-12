@@ -1,0 +1,456 @@
+# Gorgeous "Tick" Chip8 game
+
+# Registry Layout
+# V0 - score
+# V2 - game state
+# 0 - menu
+# 1 - game
+# V3 - free
+# V1 - movement direction
+# 0 - right
+# 1 - left
+# 2 - down
+# 3 - up
+# V4 - target pos x
+# V5 - target pos y 
+# V6 - is circle active
+# - 0 - not active
+# - 1 - active
+# V7 - circle pos x
+# V8 - circle pos y
+# V9 - circle speed (1 move per n frames)
+# VA - circle step (1 pixel per move)
+# VB - circle range (3 pixels)
+# VC - temp data for circle collision detection
+# VD - temp data for circle collision detection
+# VE - temporary data
+
+# Entry point
+1*func_init*
+
+&target_sprite&
+7E 81 81 81 81 81 81 7E
+
+&circle_sprite&
+00 18 24 42 42 24 18 00
+
+# Row 0 (y=0-7)
+&logo_00&
+00 00 00 00 00 00 00 00
+&logo_01&
+00 00 00 00 00 00 00 07
+&logo_02&
+00 00 00 00 00 00 FE 87
+&logo_03&
+00 00 00 00 00 00 1F F0
+&logo_04&
+00 00 00 00 00 00 C0 C0
+&logo_05&
+00 00 00 00 00 00 00 00
+&logo_06&
+00 00 00 00 00 00 00 00
+&logo_07&
+00 00 00 00 00 00 00 00
+
+# Row 1 (y=8-15)
+&logo_08&
+00 00 00 00 00 00 00 00
+&logo_09&
+06 06 03 00 00 00 00 00
+&logo_10&
+38 39 F1 03 07 0F 0E 1C
+&logo_11&
+FF E0 C0 80 87 06 06 00
+&logo_12&
+80 00 00 00 00 00 00 00
+&logo_13&
+00 00 00 00 01 01 03 07
+&logo_14&
+03 1F 70 E0 E0 C0 80 00
+&logo_15&
+B0 E0 00 00 00 00 00 00
+
+# Row 2 (y=16-23)
+&logo_16&
+00 00 00 00 00 01 01 00
+&logo_17&
+00 00 38 F8 C1 81 87 CE
+&logo_18&
+3C 38 71 E0 C0 C1 83 03
+&logo_19&
+00 78 F8 70 E1 C3 C3 B3
+&logo_20&
+00 1F 73 E0 C0 80 8C B9
+&logo_21&
+07 0F 9F 3D 3C 7E FE E7
+&logo_22&
+60 F0 60 C0 00 00 00 00
+&logo_23&
+00 00 00 00 00 00 00 00
+
+# Row 3 (y=24-31)
+&logo_24&
+00 00 00 00 00 00 00 00
+&logo_25&
+78 00 00 00 00 00 00 00
+&logo_26&
+03 00 07 04 04 04 07 00
+&logo_27&
+E1 00 55 51 75 55 55 00
+&logo_28&
+E3 00 DC 54 DC 14 1C 00
+&logo_29&
+C7 03 01 00 00 00 00 00
+&logo_30&
+00 E0 80 00 00 00 00 00
+&logo_31&
+00 00 00 00 00 00 00 00
+
+# Function to spawn circles
+&func_spawn_circle&
+4601 # If V6 is 1 (circle not active)
+00EE # Return 1
+6601 # Set V6 to 1
+2*func_reset_circle*
+# 6700 # Set Circle x position to 0
+# 680C # Set Circle y position to 12 
+6100 # Set Movement direction to 0 (right)
+00EE # Return 2
+
+&func_draw_circle&
+4600 # If V6 is 0 (circle not active)
+00EE # Return 1
+A*circle_sprite* # Set I to a circle sprite address
+D788 # Draw circle sprite
+00EE # Return 2
+
+&func_check_wrap_x&
+3740
+00EE
+6700
+00EE
+
+&func_check_wrap_-x&
+3700
+00EE
+6740
+00EE
+
+&func_check_wrap_y&
+3820 # or whatever the appropriate vertical bound is
+00EE
+6800
+00EE
+
+&func_check_wrap_-y&
+3800 # or whatever the appropriate vertical bound is
+00EE
+6820
+00EE
+
+&func_move_circle&
+4600 # If V6 is 0 (circle not active)
+00EE # Return 1
+FF07 # Set VF to delay_timer
+3F00 # If delay_timer is 0
+00EE # Return 2
+4100 # If V1 is 0 (Circle is moving to the right)
+87A4 # Move circle to the right
+4101 # If V1 is 1 (Circle is moving to the left)
+87A5 # Move circle to the left
+4102 # If V1 is 2 (Circle is moving to the down)
+88A4
+4103 # If V1 is 3 (Circle is moving to the up)
+88A5
+# Wrap movement
+4100 # only check x-wrap if moving horizontally
+2*func_check_wrap_x*
+4101
+2*func_check_wrap_-x*
+4102 # only check y-wrap if moving vertically
+2*func_check_wrap_y*
+4103
+2*func_check_wrap_-y*
+00EE
+
+&func_update_delay_timer&
+FE07 # Set VF to delay_timer
+3F00 # If delay_timer is 0
+00EE # Return 1
+F915 # Set delay_timer to V9
+00EE # Return 2
+
+&func_fail_check&
+6000
+2*func_update_speed*
+00EE
+
+&func_change_speed_0&
+6903
+6A01
+00EE
+
+&func_change_speed_1&
+6905
+6A02
+00EE
+
+&func_change_speed_2&
+6903
+6A02
+00EE
+
+&func_change_speed_3&
+6902
+6A02
+00EE
+
+&func_update_speed&
+4000 # If score is 0
+2*func_change_speed_0*
+4003 # If score is 3
+2*func_change_speed_1*
+4006 # If score is 6
+2*func_change_speed_2*
+400A # If score is A
+2*func_change_speed_3*
+00EE
+
+&func_check_input&
+6E0A 
+EE9E # If "Z" key is pressed
+00EE # Return 1
+6E00 # Reset VE
+2*func_check_target_distance_x*
+3E67 # If VE is not 67 -> return
+1*func_fail_check*
+2*func_check_target_distance_y*
+3E68 # If VE is not 68 -> return
+1*func_fail_check*
+6E08
+FE18 # Play buzzer sound
+7001 # Increase score
+2*func_update_speed*
+C103 # Set V1 to a random number between 0 and 3 inclusive
+6E01 # Set VE to 1
+2*func_reset_circle*
+00EE # Return2
+
+&func_reset_circle_left&
+6700
+680C
+00EE
+
+&func_reset_circle_right&
+6740
+680C
+00EE
+
+## 1C 0C Target positions
+&func_reset_circle_down&
+671C
+6820
+00EE
+
+&func_reset_circle_up&
+671C
+6800
+00EE
+
+&func_reset_circle&
+4100
+2*func_reset_circle_left*
+4101
+2*func_reset_circle_right*
+4102
+2*func_reset_circle_up*
+4103
+2*func_reset_circle_down*
+00EE # Return
+
+&func_check_target_distance_x&
+3601 # If circle is not active - return 
+00EE # Return
+6F00 # Reset VF
+8C40 # Copy target positions 
+8D40 # Copy target positions 
+8CB5 # Get L at VC
+8DB4 # Get R at VD
+8E70 # Copy circle position to VE
+8EC5 # VE - L
+4F00 # If VF == 0
+1*func_reset_circle*
+8E70 # Copy circle position to VE
+8DE5 # R - VE
+4F00 # If VF == 0
+1*func_reset_circle*
+6E67 # Success! Set VE to 67
+00EE # Return
+
+&func_check_target_distance_y&
+3601 # If circle is not active - return 
+00EE # Return
+6F00 # Reset VF
+8C50 # Copy target positions 
+8D50 # Copy target positions 
+8CB5 # Get D at VC
+8DB4 # Get U at VD
+8E80 # Copy circle position to VE
+8EC5 # VE - D
+4F00 # If VF == 0
+1*func_reset_circle*
+8E80 # Copy circle position to VE
+8DE5 # U - VE
+4F00 # If VF == 0
+1*func_reset_circle*
+6E68 # Success! Set VE to 68
+00EE # Return
+
+&func_update_menu&
+#00E0 # Clear screen
+
+6C00
+6D00
+
+6C00
+A*logo_00*
+DCD8
+6C08
+A*logo_01*
+DCD8
+6C10
+A*logo_02*
+DCD8
+6C18
+A*logo_03*
+DCD8
+6C20
+A*logo_04*
+DCD8
+6C28
+A*logo_05*
+DCD8
+6C30
+A*logo_06*
+DCD8
+6C38
+A*logo_07*
+DCD8
+
+6D08
+
+6C00
+A*logo_08*
+DCD8
+6C08
+A*logo_09*
+DCD8
+6C10
+A*logo_10*
+DCD8
+6C18
+A*logo_11*
+DCD8
+6C20
+A*logo_12*
+DCD8
+6C28
+A*logo_13*
+DCD8
+6C30
+A*logo_14*
+DCD8
+6C38
+A*logo_15*
+DCD8
+
+6D10
+
+6C00
+A*logo_16*
+DCD8
+6C08
+A*logo_17*
+DCD8
+6C10
+A*logo_18*
+DCD8
+6C18
+A*logo_19*
+DCD8
+6C20
+A*logo_20*
+DCD8
+6C28
+A*logo_21*
+DCD8
+6C30
+A*logo_22*
+DCD8
+6C38
+A*logo_23*
+DCD8
+
+6D18
+
+6C00
+A*logo_24*
+DCD8
+6C08
+A*logo_25*
+DCD8
+6C10
+A*logo_26*
+DCD8
+6C18
+A*logo_27*
+DCD8
+6C20
+A*logo_28*
+DCD8
+6C28
+A*logo_29*
+DCD8
+6C30
+A*logo_30*
+DCD8
+6C38
+A*logo_31*
+DCD8
+
+FE07 # Set VE to delay timer
+4E00 # If delay timer is 0
+6201 # Set state to game
+00EE # Return
+
+&func_update_game&
+00E0 # Clear Screen
+A*target_sprite* # Set I to a Target sprite address
+D458 # Draw target sprite
+
+2*func_spawn_circle* # Call spawn circle function 
+2*func_draw_circle* # Call draw circle function 
+2*func_move_circle* # Call move circle function
+2*func_update_delay_timer*
+2*func_check_input*
+00EE # Return
+
+&func_init&
+6EB4 # Set VE to 180
+FE15 # Set delay timer to 180
+
+2*func_update_speed*
+6B02 # Set VB (circle range) to NN
+641C # Set target's x position in V4 to 28
+650C # Set target's y position in V5 to 14
+
+&func_update&
+4200 # If V2 is 0 -> update menu
+2*func_update_menu*
+4201 # If V2 is 1 -> update game
+2*func_update_game*
+
+&func_end_frame&
+1*func_update* # Loop game
+
+
