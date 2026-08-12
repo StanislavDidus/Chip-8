@@ -11,10 +11,11 @@ Chip-8 emulator written in modern C++.
 * [Quirks](#quirks)
 * [User Interface](#user-interface)
 * [Dependencies](#dependencies)
-* [Screenshots](#screenshots)
 * [Debugging](#debugging)
+* [Making games](#making-games)
 * [Resources](#resources)
 * [License](#license)
+* [Screenshots](#screenshots)
 
 ## Versions
 This emulator support various version of Chip8
@@ -47,6 +48,9 @@ game.
 easier. By default, `imgui.ini` file is shipped with the executable so the windows will have a default position,
 but feel free to change and move around them as you want.
 
+If you want to play a game in **fullscreen** mode you can **double click** on the **Viewport**
+where the game is displayed. To exit it **double click** again.
+
 
 ## Dependencies
 This emulator uses libraries such as **SDL3** and **imgui**.
@@ -67,6 +71,23 @@ after them can be used to store the game's ROM data.
 
 In debug mode you also can step through instructions if you pause the game. It can be useful to
 debug register values or other changes in the program.
+
+## Making games
+This emulator can also be used for the purpose of developing **Chip-8** games. Unfortunately, it doesn't feature a full text editor
+where you can write your instructions, however you can use other tools like 
+**Octo assembler** to write code in a simple language called **Octo**. Then you can
+compile it into native **Chip-8** instructions that you can run here.
+
+If you for some reason do not want to use **Octo** you could write the code yourself in some
+**Hex Editor** or you could use my own [**Chip-8 Compiler**](https://github.com/StanislavDidus/Chip-8/tree/chip8_compiler). It is stored in the same repository as
+the emulator and is located in a branch called `chip8_compiler`.
+
+There you can find more information about it. In short, this compiler allows you to write
+all your **Chip-8** instructions in a simple `.txt` file and then compile it into a
+`.ch8` file. My compiler also supports writing comments in your code and address labels.
+
+*Note: this compiler will most probably not work when creating **XO-Chip** games because of the extended memory*
+
 
 ## Resources
 
