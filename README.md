@@ -13,6 +13,7 @@ Chip-8 emulator written in modern C++.
 * [Dependencies](#dependencies)
 * [Debugging](#debugging)
 * [Making games](#making-games)
+* [Building](#building)
 * [Resources](#resources)
 * [License](#license)
 * [Screenshots](#screenshots)
@@ -88,6 +89,14 @@ all your **Chip-8** instructions in a simple `.txt` file and then compile it int
 
 *Note: this compiler will most probably not work when creating **XO-Chip** games because of the extended memory*
 
+## Building
+
+You can build this emulator by using these simple cmake commands:
+```
+cmake -S . -B build 
+cmake --build build
+
+```
 
 ## Resources
 
