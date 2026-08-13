@@ -34,7 +34,7 @@ player Chip48 or Super-Chip games on XO-Chip.
 List of available quirks:
 * **VF Reset** - Instructions `8XY1` `8XY2` `8XY3` set` VF` to `0` when turned on.
 * **Display wait** - This quirk does not affect the emulator in any way yet.
-* **Memor**y - Instructions `FX55` and `FX65` will increment index register if on.
+* **Memory** - Instructions `FX55` and `FX65` will increment index register if on.
 * **Clipping** - Sprites at the edge of the screen will be clipped instead of wrapped.
 * **Shifting** - Opcodes `8XY6` and `8XYE` only operate on `VX` value and ignore `VY`.
 * **Jumping** - Jump to address `NNN` plus `VX` instead of `V0`.
